@@ -1,12 +1,11 @@
 use std::env;
 
-use diesel::{MysqlConnection};
+use diesel::MysqlConnection;
 use diesel::r2d2::{self, ConnectionManager};
 use dotenvy::dotenv;
 use ntex::web;
 use ntex::web::middleware;
 use once_cell::sync::Lazy;
-
 
 use crate::handler::{menu_handler, role_handler, user_handler};
 

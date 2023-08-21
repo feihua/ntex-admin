@@ -8,7 +8,6 @@
 https://github.com/feihua/antd-admin.git
 ```
 
-diesel setup --database-url=mysql://root:ad879037-c7a4-4063-9236-6bfc35d54b7d@139.159.180.129:3306/diesel_demo
 # 相关rust web框架项目
 
 ```

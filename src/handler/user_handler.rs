@@ -2,8 +2,8 @@ use std::collections::HashMap;
 
 use diesel::{ExpressionMethods, QueryDsl, RunQueryDsl, sql_query};
 use diesel::associations::HasTable;
-use diesel::sql_types::{Bigint};
-use log::{info};
+use diesel::sql_types::Bigint;
+use log::info;
 use ntex::http::header;
 use ntex::web;
 
@@ -12,7 +12,7 @@ use crate::model::role::SysRole;
 use crate::model::user::{SysUser, SysUserAdd, SysUserUpdate};
 use crate::model::user_role::{SysUserRole, SysUserRoleAdd};
 use crate::RB;
-use crate::schema::sys_menu::{api_url};
+use crate::schema::sys_menu::api_url;
 use crate::schema::sys_menu::dsl::sys_menu;
 use crate::schema::sys_role::dsl::sys_role;
 use crate::schema::sys_user::{id, mobile, password};

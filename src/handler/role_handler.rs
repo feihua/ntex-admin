@@ -2,11 +2,10 @@ use diesel::{ExpressionMethods, QueryDsl, RunQueryDsl};
 use diesel::associations::HasTable;
 use ntex::web;
 
-
 use crate::{RB, schema};
 use crate::model::menu::SysMenu;
 use crate::model::role::{SysRole, SysRoleAdd, SysRoleUpdate};
-use crate::model::role_menu::{SysRoleMenuAdd};
+use crate::model::role_menu::SysRoleMenuAdd;
 use crate::schema::sys_menu::dsl::sys_menu;
 use crate::schema::sys_role::dsl::sys_role;
 use crate::schema::sys_role::id;
