@@ -4,7 +4,6 @@ use diesel::MysqlConnection;
 use diesel::r2d2::{self, ConnectionManager};
 use dotenvy::dotenv;
 use ntex::web;
-use ntex::web::middleware;
 use once_cell::sync::Lazy;
 
 use crate::handler::{menu_handler, role_handler, user_handler};
@@ -14,6 +13,7 @@ pub mod model;
 pub mod vo;
 pub mod utils;
 pub mod schema;
+pub mod middleware;
 
 type DbPool = r2d2::Pool<ConnectionManager<MysqlConnection>>;
 
@@ -30,7 +30,8 @@ async fn main() -> std::io::Result<()> {
     log4rs::init_file("src/config/log4rs.yaml", Default::default()).unwrap();
     dotenv().ok();
     web::HttpServer::new(|| web::App::new()
-        .wrap(middleware::Logger::default())
+        .wrap(ntex::web::middleware::Logger::default())
+        // .wrap(middleware::auth::JwtAuth)
         .service(web::scope("/api")
             .service(user_handler::login)
             .service(user_handler::query_user_role)

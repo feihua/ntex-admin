@@ -1,6 +1,7 @@
 use std::fmt::Debug;
 
 use diesel::QueryResult;
+use serde::Deserialize;
 use serde::Serialize;
 
 pub mod user_vo;
@@ -8,7 +9,7 @@ pub mod role_vo;
 pub mod menu_vo;
 
 // 统一返回vo
-#[derive(Serialize, Debug, Clone)]
+#[derive(Serialize, Debug, Clone, Deserialize)]
 pub struct BaseResponse<T>
     where T: Serialize + Debug
 {
