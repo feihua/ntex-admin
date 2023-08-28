@@ -3,6 +3,7 @@ use std::collections::HashMap;
 use diesel::{ExpressionMethods, QueryDsl, RunQueryDsl, sql_query};
 use diesel::associations::HasTable;
 use diesel::sql_types::Bigint;
+use futures::future::ok;
 use log::info;
 use ntex::http::header;
 use ntex::web;
@@ -369,7 +370,7 @@ pub async fn user_list(item: web::types::Json<UserListReq>) -> Result<impl web::
 // 添加用户信息
 #[web::post("/user_save")]
 pub async fn user_save(item: web::types::Json<UserSaveReq>) -> Result<impl web::Responder, web::Error> {
-    log::info!("user_save params: {:?}", &item);
+    info!("user_save params: {:?}", &item);
 
     let user = item.0;
 
@@ -382,13 +383,7 @@ pub async fn user_save(item: web::types::Json<UserSaveReq>) -> Result<impl web::
         password: "123456".to_string(),//默认密码为123456,暂时不加密
     };
 
-    let conn_result = &mut RB.clone().get();
-    if let Ok(conn) = conn_result {
-        let result = diesel::insert_into(sys_user::table()).values(s_user).execute(conn);
-        return Ok(web::HttpResponse::Ok().json(&handle_result(result)));
-    }
-
-    Ok(web::HttpResponse::Ok().json(&err_result_msg("获取数据库连接失败".to_string())))
+    Ok(web::HttpResponse::Ok().json(&SysUserAdd::add_user(s_user)))
 }
 
 // 更新用户信息
