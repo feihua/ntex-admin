@@ -31,9 +31,9 @@ Content-Type: application/json
 Authorization: Bearer {{token}}
 
 {
-  "mobile": "18613030351",
-  "user_name": "test",
-  "remark": "test",
+  "mobile": "18613030361",
+  "user_name": "tes1t",
+  "remark": "test1",
   "status_id": 1,
   "sort": 1
 }

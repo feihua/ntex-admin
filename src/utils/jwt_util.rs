@@ -75,7 +75,7 @@ impl JWTToken {
                 ErrorKind::InvalidIssuer => return Err(JwtTokenError("InvalidIssuer".to_string())), // Example on how to handle a specific error
                 ErrorKind::ExpiredSignature => return Err(JwtTokenError("token 已经超时了".to_string())), // Example on how to handle a specific error
                 // _ => return Err(Error::from("InvalidToken other errors")),
-                _ => Err(JwtTokenError("create token error".to_string())),
+                _ => Err(JwtTokenError("verify token error".to_string())),
             },
         };
     }

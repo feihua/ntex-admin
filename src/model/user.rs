@@ -1,7 +1,6 @@
 use chrono::NaiveDateTime;
 use diesel::associations::HasTable;
 use diesel::prelude::*;
-use diesel::result::Error;
 use diesel::sql_query;
 use diesel::sql_types::Bigint;
 use ntex::web;

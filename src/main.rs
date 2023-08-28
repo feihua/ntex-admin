@@ -31,7 +31,7 @@ async fn main() -> std::io::Result<()> {
     dotenv().ok();
     web::HttpServer::new(|| web::App::new()
         .wrap(ntex::web::middleware::Logger::default())
-        // .wrap(middleware::auth::JwtAuth)
+        .wrap(middleware::auth::JwtAuth)
         .service(web::scope("/api")
             .service(user_handler::login)
             .service(user_handler::query_user_role)

@@ -3,7 +3,6 @@ use std::collections::HashMap;
 use diesel::{ExpressionMethods, QueryDsl, RunQueryDsl, sql_query};
 use diesel::associations::HasTable;
 use diesel::sql_types::Bigint;
-use futures::future::ok;
 use log::info;
 use ntex::http::header;
 use ntex::web;
