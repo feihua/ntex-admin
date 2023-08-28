@@ -383,7 +383,7 @@ pub async fn user_save(item: web::types::Json<UserSaveReq>) -> Result<impl web::
         password: "123456".to_string(),//默认密码为123456,暂时不加密
     };
 
-    Ok(web::HttpResponse::Ok().json(&SysUserAdd::add_user(s_user)))
+    Ok(web::HttpResponse::Ok().json(&SysUser::add_user(s_user)))
 }
 
 // 更新用户信息
