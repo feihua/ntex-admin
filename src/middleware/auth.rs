@@ -1,11 +1,9 @@
 use log::info;
-use ntex::http::error::DispatchError::InternalError;
 use ntex::http::header;
 use ntex::service::{Middleware, Service, ServiceCtx};
 use ntex::util::BoxFuture;
 use ntex::web;
-use ntex::web::{error, HttpResponse};
-use serde_json::json;
+use ntex::web::HttpResponse;
 
 use crate::utils::error::WhoUnfollowedError;
 use crate::utils::jwt_util::JWTToken;
