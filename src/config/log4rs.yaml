@@ -14,3 +14,9 @@ root:
   appenders:
     - stdout
     - requests
+loggers:
+  sql_query_logger:
+    level: debug
+    appenders:
+      - console
+      - file
