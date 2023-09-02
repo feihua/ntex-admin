@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use diesel::{ExpressionMethods, QueryDsl, RunQueryDsl, sql_query};
 use diesel::associations::HasTable;
 use diesel::sql_types::Bigint;
-use log::info;
+use log::{debug, info};
 use ntex::http::header;
 use ntex::web;
 
@@ -32,7 +32,11 @@ pub async fn login(item: web::types::Json<UserLoginReq>) -> Result<impl web::Res
     let conn_result = &mut RB.clone().get();
 
     if let Ok(conn) = conn_result {
-        let user_result = sys_user.filter(mobile.eq(&item.mobile)).first::<SysUser>(conn);
+        let query = sys_user.filter(mobile.eq(&item.mobile));
+        let sql = diesel::debug_query::<diesel::mysql::Mysql, _>(&query).to_string();
+        info!("SQL: {}", sql);
+        // debug!("Parameters: {:?}", params);
+        let user_result = query.first::<SysUser>(conn);
 
         if let Ok(user) = user_result {
             log::info!("select_by_mobile: {:?}", user);
@@ -435,7 +439,10 @@ pub async fn user_delete(item: web::types::Json<UserDeleteReq>) -> Result<impl w
             ids.remove(1);
         }
 
-        let result = diesel::delete(sys_user.filter(id.eq_any(ids))).execute(conn);
+        let query = diesel::delete(sys_user.filter(id.eq_any(ids)));
+        let sql = diesel::debug_query::<diesel::mysql::Mysql, _>(&query).to_string();
+        info!("SQL: {}", sql);
+        let result = query.execute(conn);
         return Ok(web::HttpResponse::Ok().json(&handle_result(result)));
     }
 
