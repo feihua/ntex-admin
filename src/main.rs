@@ -18,7 +18,7 @@ pub mod middleware;
 type DbPool = r2d2::Pool<ConnectionManager<MysqlConnection>>;
 
 pub static RB: Lazy<DbPool> = Lazy::new(|| {
-    let database_url = env::var("DATABASE_URL").expect("DATABASE_URL must be set");
+    let database_url = env::var("database_url").expect("database_url must be set");
     let manager = ConnectionManager::<MysqlConnection>::new(database_url);
     r2d2::Pool::builder().build(manager).expect("Failed to create pool.")
 });

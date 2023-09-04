@@ -1,6 +1,5 @@
-use diesel::{ExpressionMethods, MysqlConnection, QueryDsl, RunQueryDsl};
+use diesel::{ExpressionMethods, QueryDsl, RunQueryDsl};
 use diesel::associations::HasTable;
-use diesel::r2d2::ConnectionManager;
 use log::{debug, error};
 use ntex::web;
 
@@ -15,7 +14,7 @@ use crate::vo::menu_vo::{*};
 #[web::post("/menu_list")]
 pub async fn menu_list(item: web::types::Json<MenuListReq>) -> Result<impl web::Responder, web::Error> {
     log::info!("menu_list params: {:?}", &item);
-    return match &mut RB.clone().get() {
+    match &mut RB.clone().get() {
         Ok(conn) => {
             let mut query = sys_menu::table().into_boxed();
             if let Some(i) = &item.status_id {
@@ -23,7 +22,7 @@ pub async fn menu_list(item: web::types::Json<MenuListReq>) -> Result<impl web::
             }
             debug!("SQL:{}", diesel::debug_query::<diesel::mysql::Mysql, _>(&query).to_string());
             let mut menu_list: Vec<MenuListData> = Vec::new();
-            let menu_result = sys_menu.load::<SysMenu>(conn);
+            let menu_result = query.load::<SysMenu>(conn);
             if let Ok(menus) = menu_result {
                 for menu in menus {
                     menu_list.push(MenuListData {
@@ -50,7 +49,7 @@ pub async fn menu_list(item: web::types::Json<MenuListReq>) -> Result<impl web::
             error!("err:{}", err.to_string());
             Ok(web::HttpResponse::Ok().json(&err_result_msg(err.to_string())))
         }
-    };
+    }
 }
 
 // 添加菜单
@@ -81,7 +80,7 @@ pub async fn menu_save(item: web::types::Json<MenuSaveReq>) -> Result<impl web::
         }
     };
 
-    return Ok(web::HttpResponse::Ok().json(&resp));
+    Ok(web::HttpResponse::Ok().json(&resp))
 }
 
 // 更新菜单
@@ -113,7 +112,7 @@ pub async fn menu_update(item: web::types::Json<MenuUpdateReq>) -> Result<impl w
         }
     };
 
-    return Ok(web::HttpResponse::Ok().json(&resp));
+    Ok(web::HttpResponse::Ok().json(&resp))
 }
 
 // 删除菜单信息
@@ -124,18 +123,19 @@ pub async fn menu_delete(item: web::types::Json<MenuDeleteReq>) -> Result<impl w
     let resp = match &mut RB.clone().get() {
         Ok(conn) => {
             //有下级的时候 不能直接删除
-            let count_result = sys_menu.filter(parent_id.eq(&item.id)).count().get_result::<i64>(conn);
-
-            if let Ok(count) = count_result {
-                if count > 0 {
-                    error!("err:{}", "有下级菜单,不能直接删除".to_string());
-                    return Ok(web::HttpResponse::Ok().json(&err_result_msg("有下级菜单,不能直接删除".to_string())));
+            match sys_menu.filter(parent_id.eq(&item.id)).count().get_result::<i64>(conn) {
+                Ok(count) => {
+                    if count > 0 {
+                        error!("err:{}", "有下级菜单,不能直接删除".to_string());
+                        err_result_msg("有下级菜单,不能直接删除".to_string())
+                    } else {
+                        handle_result(diesel::delete(sys_menu.filter(id.eq(&item.id))).execute(conn))
+                    }
+                }
+                Err(err) => {
+                    err_result_msg(err.to_string())
                 }
             }
-
-            let result = diesel::delete(sys_menu.filter(id.eq(3))).execute(conn);
-
-            handle_result(result)
         }
         Err(err) => {
             error!("err:{}", err.to_string());
@@ -143,5 +143,5 @@ pub async fn menu_delete(item: web::types::Json<MenuDeleteReq>) -> Result<impl w
         }
     };
 
-    return Ok(web::HttpResponse::Ok().json(&resp));
+    Ok(web::HttpResponse::Ok().json(&resp))
 }

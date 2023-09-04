@@ -1,6 +1,7 @@
 use chrono::NaiveDateTime;
 use diesel::associations::HasTable;
 use diesel::prelude::*;
+use log::{debug, error};
 use serde::{Deserialize, Serialize};
 
 use crate::RB;
@@ -54,12 +55,16 @@ pub struct SysUser {
 impl SysUser {
     // 添加用户信息
     pub fn add_user(s_user: SysUserAdd) -> BaseResponse<String> {
-        let conn_result = &mut RB.clone().get();
-        if let Ok(conn) = conn_result {
-            let result = diesel::insert_into(sys_user::table()).values(s_user).execute(conn);
-            return handle_result(result);
+        match &mut RB.clone().get() {
+            Ok(conn) => {
+                let query = diesel::insert_into(sys_user::table()).values(s_user);
+                debug!("SQL:{}", diesel::debug_query::<diesel::mysql::Mysql, _>(&query).to_string());
+                handle_result(query.execute(conn))
+            }
+            Err(err) => {
+                error!("err:{}", err.to_string());
+                err_result_msg(err.to_string())
+            }
         }
-
-        err_result_msg("获取数据库连接失败".to_string())
     }
 }

@@ -2,7 +2,7 @@ use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct MenuListReq {
-    pub menu_name: Option<String>,
+    pub status_id: Option<i8>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
