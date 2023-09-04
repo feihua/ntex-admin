@@ -151,25 +151,23 @@ pub async fn role_delete(item: web::types::Json<RoleDeleteReq>) -> Result<impl w
 pub async fn query_role_menu(item: web::types::Json<QueryRoleMenuReq>) -> Result<impl web::Responder, web::Error> {
     info!("query_role_menu params: {:?}", &item);
 
-    let resp = match &mut RB.clone().get() {
+    match &mut RB.clone().get() {
         Ok(conn) => {
             let mut menu_data_list: Vec<MenuDataList> = Vec::new();
             let mut role_menu_ids: Vec<i64> = Vec::new();
             // 查询所有菜单
-            let menu_list_result = sys_menu.load::<SysMenu>(conn);
-
-            match menu_list_result {
+            match sys_menu.load::<SysMenu>(conn) {
                 Ok(menu_list) => {
-                    for x in menu_list {
+                    for menu in menu_list {
                         menu_data_list.push(MenuDataList {
-                            id: x.id.clone(),
-                            parent_id: x.parent_id,
-                            title: x.menu_name.clone(),
-                            key: x.id.to_string(),
-                            label: x.menu_name,
-                            is_penultimate: x.parent_id == 2,
+                            id: menu.id.clone(),
+                            parent_id: menu.parent_id,
+                            title: menu.menu_name.clone(),
+                            key: menu.id.to_string(),
+                            label: menu.menu_name,
+                            is_penultimate: menu.parent_id == 2,
                         });
-                        role_menu_ids.push(x.id)
+                        role_menu_ids.push(menu.id)
                     }
                 }
                 Err(err) => {
@@ -193,18 +191,16 @@ pub async fn query_role_menu(item: web::types::Json<QueryRoleMenuReq>) -> Result
                 }
             }
 
-            ok_result_data(QueryRoleMenuData {
+            Ok(web::HttpResponse::Ok().json(&ok_result_data(QueryRoleMenuData {
                 role_menus: role_menu_ids,
                 menu_list: menu_data_list,
-            })
+            })))
         }
         Err(err) => {
             error!("err:{}", err.to_string());
-            return Ok(web::HttpResponse::Ok().json(&err_result_msg(err.to_string())));
+            Ok(web::HttpResponse::Ok().json(&err_result_msg(err.to_string())))
         }
-    };
-
-    Ok(web::HttpResponse::Ok().json(&resp))
+    }
 }
 
 // 更新角色关联的菜单
@@ -216,8 +212,7 @@ pub async fn update_role_menu(item: web::types::Json<UpdateRoleMenuReq>) -> Resu
 
     let resp = match &mut RB.clone().get() {
         Ok(conn) => {
-            let result = diesel::delete(sys_role_menu.filter(role_id.eq(r_id))).execute(conn);
-            match result {
+            match diesel::delete(sys_role_menu.filter(role_id.eq(r_id))).execute(conn) {
                 Ok(_) => {
                     let mut role_menu: Vec<SysRoleMenuAdd> = Vec::new();
 

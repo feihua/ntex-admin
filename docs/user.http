@@ -43,7 +43,9 @@ Content-Type: application/json
 Authorization: Bearer {{token}}
 
 {
-  "ids": [2]
+  "ids": [
+    1
+  ]
 }
 ###更新用户 user_update
 POST {{host}}/api/user_update
