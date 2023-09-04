@@ -126,10 +126,9 @@ pub async fn menu_delete(item: web::types::Json<MenuDeleteReq>) -> Result<impl w
                 Ok(count) => {
                     if count > 0 {
                         error!("err:{}", "有下级菜单,不能直接删除".to_string());
-                        err_result_msg("有下级菜单,不能直接删除".to_string())
-                    } else {
-                        handle_result(diesel::delete(sys_menu.filter(id.eq(&item.id))).execute(conn))
+                        return Ok(web::HttpResponse::Ok().json(&err_result_msg("有下级菜单,不能直接删除".to_string())));
                     }
+                    handle_result(diesel::delete(sys_menu.filter(id.eq(&item.id))).execute(conn))
                 }
                 Err(err) => {
                     error!("err:{}", err.to_string());

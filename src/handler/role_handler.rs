@@ -125,11 +125,11 @@ pub async fn role_delete(item: web::types::Json<RoleDeleteReq>) -> Result<impl w
             //查询角色有没有被使用了,如果使用了就不能删除
             match sys_user_role.filter(schema::sys_user_role::role_id.eq_any(ids)).count().get_result::<i64>(conn) {
                 Ok(count) => {
-                    if count == 0 {
-                        handle_result(diesel::delete(sys_role.filter(id.eq_any(&item.ids))).execute(conn))
-                    } else {
-                        err_result_msg("角色已被使用,不能删除".to_string())
+                    if count != 0 {
+                        error!("err:{}", "角色已被使用,不能删除".to_string());
+                        return Ok(web::HttpResponse::Ok().json(&err_result_msg("角色已被使用,不能删除".to_string())));
                     }
+                    handle_result(diesel::delete(sys_role.filter(id.eq_any(&item.ids))).execute(conn))
                 }
                 Err(err) => {
                     error!("err:{}", err.to_string());

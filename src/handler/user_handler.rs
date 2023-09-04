@@ -1,7 +1,7 @@
 use diesel::{ExpressionMethods, QueryDsl, RunQueryDsl, sql_query};
 use diesel::associations::HasTable;
 use diesel::sql_types::Bigint;
-use log::{debug, error, info};
+use log::{debug, error, info, warn};
 use ntex::http::header;
 use ntex::web;
 
@@ -19,7 +19,7 @@ use crate::schema::sys_user_role::{role_id, user_id};
 use crate::schema::sys_user_role::dsl::sys_user_role;
 use crate::utils::error::WhoUnfollowedError;
 use crate::utils::jwt_util::JWTToken;
-use crate::vo::{err_result_msg, handle_result, ok_result_data, ok_result_page};
+use crate::vo::{err_result_msg, handle_result, ok_result, ok_result_data, ok_result_page};
 use crate::vo::user_vo::*;
 
 // 后台用户登录
@@ -56,10 +56,12 @@ pub async fn login(item: web::types::Json<UserLoginReq>) -> Result<impl web::Res
                             _ => "no math error".to_string()
                         };
 
+                        error!("err:{}", er.to_string());
                         Ok(web::HttpResponse::Ok().json(&err_result_msg(er)))
                     }
                 }
             } else {
+                error!("err:{}", "根据手机号查询用户异常".to_string());
                 Ok(web::HttpResponse::Ok().json(&err_result_msg("根据手机号查询用户异常".to_string())))
             }
         }
@@ -347,9 +349,8 @@ pub async fn user_list(item: web::types::Json<UserListReq>) -> Result<impl web::
 
     match &mut RB.clone().get() {
         Ok(conn) => {
-            let sys_user_result = query.load::<SysUser>(conn);
             let mut list_data: Vec<UserListData> = Vec::new();
-            if let Ok(sys_user_list) = sys_user_result {
+            if let Ok(sys_user_list) = query.load::<SysUser>(conn) {
                 for user in sys_user_list {
                     list_data.push(UserListData {
                         id: user.id,
@@ -401,9 +402,8 @@ pub async fn user_update(item: web::types::Json<UserUpdateReq>) -> Result<impl w
     let resp = match &mut RB.clone().get() {
         Ok(conn) => {
             let user_sql = sql_query("SELECT * FROM sys_user where id = ? ");
-            let result = user_sql.bind::<Bigint, _>(user.id).get_result::<SysUser>(conn);
 
-            match result {
+            match user_sql.bind::<Bigint, _>(user.id).get_result::<SysUser>(conn) {
                 Ok(s_user) => {
                     let s_user = SysUserUpdate {
                         id: user.id.clone(),
@@ -441,13 +441,22 @@ pub async fn user_delete(item: web::types::Json<UserDeleteReq>) -> Result<impl w
 
     let resp = match &mut RB.clone().get() {
         Ok(conn) => {
-            let mut ids = item.ids.clone();
+            let ids = item.ids.clone();
             //id为1的用户为系统预留用户,不能删除
-            if ids.contains(&1) {
-                ids.remove(1);
+            let mut delete_ids = vec![];
+            for delete_id in ids {
+                if delete_id == 1 {
+                    warn!("err:{}", "不能删除超级管理员".to_string());
+                    continue;
+                }
+                delete_ids.push(delete_id)
             }
 
-            let query = diesel::delete(sys_user.filter(id.eq_any(ids)));
+            if delete_ids.len() == 0 {
+                return Ok(web::HttpResponse::Ok().json(&ok_result()));
+            }
+
+            let query = diesel::delete(sys_user.filter(id.eq_any(delete_ids)));
             debug!("SQL: {}", diesel::debug_query::<diesel::mysql::Mysql, _>(&query).to_string());
             handle_result(query.execute(conn))
         }
@@ -470,17 +479,13 @@ pub async fn update_user_password(item: web::types::Json<UpdateUserPwdReq>) -> R
     let resp = match &mut RB.clone().get() {
         Ok(conn) => {
             let user_sql = sql_query("SELECT * FROM sys_user where id = ? ");
-            let sys_user_result = user_sql.bind::<Bigint, _>(user_pwd.id).get_result::<SysUser>(conn);
-
-            match sys_user_result {
+            match user_sql.bind::<Bigint, _>(user_pwd.id).get_result::<SysUser>(conn) {
                 Ok(user) => {
-                    if user.password == user_pwd.pwd {
-                        let result = diesel::update(sys_user.filter(id.eq(user_pwd.id.clone()))).set(password.eq(&user_pwd.re_pwd)).execute(conn);
-                        handle_result(result)
-                    } else {
+                    if user.password != user_pwd.pwd {
                         error!("err:{}", "旧密码不正确".to_string());
-                        err_result_msg("旧密码不正确".to_string())
+                        return Ok(web::HttpResponse::Ok().json(&err_result_msg("旧密码不正确".to_string())));
                     }
+                    handle_result(diesel::update(sys_user.filter(id.eq(user_pwd.id.clone()))).set(password.eq(&user_pwd.re_pwd)).execute(conn))
                 }
                 Err(err) => {
                     error!("err:{}", err.to_string());
