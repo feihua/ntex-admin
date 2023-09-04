@@ -192,6 +192,7 @@ pub async fn update_user_role(item: web::types::Json<UpdateUserRoleReq>) -> Resu
                     handle_result(diesel::insert_into(sys_user_role::table()).values(&sys_role_user_list).execute(conn))
                 }
                 Err(err) => {
+                    error!("err:{}", err.to_string());
                     err_result_msg(err.to_string())
                 }
             }
@@ -252,6 +253,7 @@ pub async fn query_user_menu(req: web::HttpRequest) -> Result<impl web::Responde
                                     sys_menu_list = s_menus;
                                 }
                                 Err(err) => {
+                                    error!("err:{}", err.to_string());
                                     return Ok(web::HttpResponse::Ok().json(&err_result_msg(err.to_string())));
                                 }
                             }
@@ -265,6 +267,7 @@ pub async fn query_user_menu(req: web::HttpRequest) -> Result<impl web::Responde
                                     sys_menu_list = s_menus;
                                 }
                                 Err(err) => {
+                                    error!("err:{}", err.to_string());
                                     return Ok(web::HttpResponse::Ok().json(&err_result_msg(err.to_string())));
                                 }
                             }
@@ -301,6 +304,7 @@ pub async fn query_user_menu(req: web::HttpRequest) -> Result<impl web::Responde
                             }
                         }
                         Err(err) => {
+                            error!("err:{}", err.to_string());
                             return Ok(web::HttpResponse::Ok().json(&err_result_msg(err.to_string())));
                         }
                     }
@@ -314,11 +318,13 @@ pub async fn query_user_menu(req: web::HttpRequest) -> Result<impl web::Responde
                 }
 
                 Err(err) => {
+                    error!("err:{}", err.to_string());
                     Ok(web::HttpResponse::Ok().json(&err_result_msg(err.to_string())))
                 }
             };
         }
         Err(err) => {
+            error!("err:{}", err.to_string());
             Ok(web::HttpResponse::Ok().json(&err_result_msg(err.to_string())))
         }
     }
@@ -414,6 +420,7 @@ pub async fn user_update(item: web::types::Json<UserUpdateReq>) -> Result<impl w
                     handle_result(query.execute(conn))
                 }
                 Err(err) => {
+                    error!("err:{}", err.to_string());
                     err_result_msg(err.to_string())
                 }
             }
@@ -471,10 +478,12 @@ pub async fn update_user_password(item: web::types::Json<UpdateUserPwdReq>) -> R
                         let result = diesel::update(sys_user.filter(id.eq(user_pwd.id.clone()))).set(password.eq(&user_pwd.re_pwd)).execute(conn);
                         handle_result(result)
                     } else {
+                        error!("err:{}", "旧密码不正确".to_string());
                         err_result_msg("旧密码不正确".to_string())
                     }
                 }
                 Err(err) => {
+                    error!("err:{}", err.to_string());
                     err_result_msg(err.to_string())
                 }
             }

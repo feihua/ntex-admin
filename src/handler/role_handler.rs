@@ -1,6 +1,6 @@
 use diesel::{ExpressionMethods, QueryDsl, RunQueryDsl};
 use diesel::associations::HasTable;
-use log::{debug, error};
+use log::{debug, error, info};
 use ntex::web;
 
 use crate::{RB, schema};
@@ -19,7 +19,7 @@ use crate::vo::role_vo::*;
 // 查询角色列表
 #[web::post("/role_list")]
 pub async fn role_list(item: web::types::Json<RoleListReq>) -> Result<impl web::Responder, web::Error> {
-    log::info!("role_list params: {:?}", &item);
+    info!("role_list params: {:?}", &item);
 
     let mut query = sys_role::table().into_boxed();
     if let Some(i) = &item.role_name {
@@ -33,11 +33,11 @@ pub async fn role_list(item: web::types::Json<RoleListReq>) -> Result<impl web::
 
     match &mut RB.clone().get() {
         Ok(conn) => {
-            let sys_role_result = query.load::<SysRole>(conn);
-            let mut role_list: Vec<RoleListData> = Vec::new();
-            if let Ok(sys_role_list) = sys_role_result {
-                for role in sys_role_list {
-                    role_list.push(RoleListData {
+            let result = query.load::<SysRole>(conn);
+            let mut list: Vec<RoleListData> = Vec::new();
+            if let Ok(role_list) = result {
+                for role in role_list {
+                    list.push(RoleListData {
                         id: role.id,
                         sort: role.sort,
                         status_id: role.status_id,
@@ -49,7 +49,7 @@ pub async fn role_list(item: web::types::Json<RoleListReq>) -> Result<impl web::
                 }
             }
 
-            Ok(web::HttpResponse::Ok().json(&ok_result_page(role_list, 10)))
+            Ok(web::HttpResponse::Ok().json(&ok_result_page(list, 10)))
         }
         Err(err) => {
             error!("err:{}", err.to_string());
@@ -62,11 +62,11 @@ pub async fn role_list(item: web::types::Json<RoleListReq>) -> Result<impl web::
 // 添加角色信息
 #[web::post("/role_save")]
 pub async fn role_save(item: web::types::Json<RoleSaveReq>) -> Result<impl web::Responder, web::Error> {
-    log::info!("role_save params: {:?}", &item);
+    info!("role_save params: {:?}", &item);
 
     let role = item.0;
 
-    let s_role = SysRoleAdd {
+    let role_add = SysRoleAdd {
         status_id: role.status_id,
         sort: role.sort,
         role_name: role.role_name,
@@ -75,7 +75,7 @@ pub async fn role_save(item: web::types::Json<RoleSaveReq>) -> Result<impl web::
 
     let resp = match &mut RB.clone().get() {
         Ok(conn) => {
-            handle_result(diesel::insert_into(sys_role::table()).values(s_role).execute(conn))
+            handle_result(diesel::insert_into(sys_role::table()).values(role_add).execute(conn))
         }
         Err(err) => {
             error!("err:{}", err.to_string());
@@ -89,7 +89,7 @@ pub async fn role_save(item: web::types::Json<RoleSaveReq>) -> Result<impl web::
 // 更新角色信息
 #[web::post("/role_update")]
 pub async fn role_update(item: web::types::Json<RoleUpdateReq>) -> Result<impl web::Responder, web::Error> {
-    log::info!("role_update params: {:?}", &item);
+    info!("role_update params: {:?}", &item);
 
     let role = item.0;
 
@@ -117,7 +117,7 @@ pub async fn role_update(item: web::types::Json<RoleUpdateReq>) -> Result<impl w
 // 删除角色信息
 #[web::post("/role_delete")]
 pub async fn role_delete(item: web::types::Json<RoleDeleteReq>) -> Result<impl web::Responder, web::Error> {
-    log::info!("role_delete params: {:?}", &item);
+    info!("role_delete params: {:?}", &item);
 
     let resp = match &mut RB.clone().get() {
         Ok(conn) => {
@@ -132,6 +132,7 @@ pub async fn role_delete(item: web::types::Json<RoleDeleteReq>) -> Result<impl w
                     }
                 }
                 Err(err) => {
+                    error!("err:{}", err.to_string());
                     err_result_msg(err.to_string())
                 }
             }
@@ -148,7 +149,7 @@ pub async fn role_delete(item: web::types::Json<RoleDeleteReq>) -> Result<impl w
 // 查询角色关联的菜单
 #[web::post("/query_role_menu")]
 pub async fn query_role_menu(item: web::types::Json<QueryRoleMenuReq>) -> Result<impl web::Responder, web::Error> {
-    log::info!("query_role_menu params: {:?}", &item);
+    info!("query_role_menu params: {:?}", &item);
 
     let resp = match &mut RB.clone().get() {
         Ok(conn) => {
@@ -172,6 +173,7 @@ pub async fn query_role_menu(item: web::types::Json<QueryRoleMenuReq>) -> Result
                     }
                 }
                 Err(err) => {
+                    error!("err:{}", err.to_string());
                     return Ok(web::HttpResponse::Ok().json(&err_result_msg(err.to_string())));
                 }
             }
@@ -185,6 +187,7 @@ pub async fn query_role_menu(item: web::types::Json<QueryRoleMenuReq>) -> Result
                         role_menu_ids = menu_ids
                     }
                     Err(err) => {
+                        error!("err:{}", err.to_string());
                         return Ok(web::HttpResponse::Ok().json(&err_result_msg(err.to_string())));
                     }
                 }
@@ -207,7 +210,7 @@ pub async fn query_role_menu(item: web::types::Json<QueryRoleMenuReq>) -> Result
 // 更新角色关联的菜单
 #[web::post("/update_role_menu")]
 pub async fn update_role_menu(item: web::types::Json<UpdateRoleMenuReq>) -> Result<impl web::Responder, web::Error> {
-    log::info!("update_role_menu params: {:?}", &item);
+    info!("update_role_menu params: {:?}", &item);
     let r_id = item.role_id.clone();
     let menu_ids = item.menu_ids.clone();
 
@@ -230,6 +233,7 @@ pub async fn update_role_menu(item: web::types::Json<UpdateRoleMenuReq>) -> Resu
                     handle_result(diesel::insert_into(sys_role_menu::table()).values(role_menu).execute(conn))
                 }
                 Err(err) => {
+                    error!("err:{}", err.to_string());
                     err_result_msg(err.to_string())
                 }
             }

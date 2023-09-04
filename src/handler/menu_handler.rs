@@ -1,11 +1,11 @@
 use diesel::{ExpressionMethods, QueryDsl, RunQueryDsl};
 use diesel::associations::HasTable;
-use log::{debug, error};
+use log::{debug, error, info};
 use ntex::web;
 
 use crate::model::menu::{SysMenu, SysMenuAdd, SysMenuUpdate};
 use crate::RB;
-use crate::schema::sys_menu::{id, parent_id, status_id};
+use crate::schema::sys_menu::{id, parent_id, sort, status_id};
 use crate::schema::sys_menu::dsl::sys_menu;
 use crate::vo::{err_result_msg, handle_result, ok_result_data};
 use crate::vo::menu_vo::{*};
@@ -13,17 +13,17 @@ use crate::vo::menu_vo::{*};
 // 查询菜单
 #[web::post("/menu_list")]
 pub async fn menu_list(item: web::types::Json<MenuListReq>) -> Result<impl web::Responder, web::Error> {
-    log::info!("menu_list params: {:?}", &item);
+    info!("menu_list params: {:?}", &item);
     match &mut RB.clone().get() {
         Ok(conn) => {
             let mut query = sys_menu::table().into_boxed();
             if let Some(i) = &item.status_id {
                 query = query.filter(status_id.eq(i));
             }
+            query = query.order(sort.asc());
             debug!("SQL:{}", diesel::debug_query::<diesel::mysql::Mysql, _>(&query).to_string());
             let mut menu_list: Vec<MenuListData> = Vec::new();
-            let menu_result = query.load::<SysMenu>(conn);
-            if let Ok(menus) = menu_result {
+            if let Ok(menus) = query.load::<SysMenu>(conn) {
                 for menu in menus {
                     menu_list.push(MenuListData {
                         id: menu.id,
@@ -55,10 +55,10 @@ pub async fn menu_list(item: web::types::Json<MenuListReq>) -> Result<impl web::
 // 添加菜单
 #[web::post("/menu_save")]
 pub async fn menu_save(item: web::types::Json<MenuSaveReq>) -> Result<impl web::Responder, web::Error> {
-    log::info!("menu_save params: {:?}", &item);
+    info!("menu_save params: {:?}", &item);
     let menu = item.0;
 
-    let s_menu = SysMenuAdd {
+    let menu_add = SysMenuAdd {
         status_id: menu.status_id,
         sort: menu.sort,
         parent_id: menu.parent_id.unwrap_or(0),
@@ -72,7 +72,7 @@ pub async fn menu_save(item: web::types::Json<MenuSaveReq>) -> Result<impl web::
 
     let resp = match &mut RB.clone().get() {
         Ok(conn) => {
-            handle_result(diesel::insert_into(sys_menu::table()).values(s_menu).execute(conn))
+            handle_result(diesel::insert_into(sys_menu::table()).values(menu_add).execute(conn))
         }
         Err(err) => {
             error!("err:{}", err.to_string());
@@ -86,7 +86,7 @@ pub async fn menu_save(item: web::types::Json<MenuSaveReq>) -> Result<impl web::
 // 更新菜单
 #[web::post("/menu_update")]
 pub async fn menu_update(item: web::types::Json<MenuUpdateReq>) -> Result<impl web::Responder, web::Error> {
-    log::info!("menu_update params: {:?}", &item);
+    info!("menu_update params: {:?}", &item);
     let menu = item.0;
 
     let s_menu = SysMenuUpdate {
@@ -118,11 +118,10 @@ pub async fn menu_update(item: web::types::Json<MenuUpdateReq>) -> Result<impl w
 // 删除菜单信息
 #[web::post("/menu_delete")]
 pub async fn menu_delete(item: web::types::Json<MenuDeleteReq>) -> Result<impl web::Responder, web::Error> {
-    log::info!("menu_delete params: {:?}", &item);
+    info!("menu_delete params: {:?}", &item);
 
     let resp = match &mut RB.clone().get() {
         Ok(conn) => {
-            //有下级的时候 不能直接删除
             match sys_menu.filter(parent_id.eq(&item.id)).count().get_result::<i64>(conn) {
                 Ok(count) => {
                     if count > 0 {
@@ -133,6 +132,7 @@ pub async fn menu_delete(item: web::types::Json<MenuDeleteReq>) -> Result<impl w
                     }
                 }
                 Err(err) => {
+                    error!("err:{}", err.to_string());
                     err_result_msg(err.to_string())
                 }
             }
