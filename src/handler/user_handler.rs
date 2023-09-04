@@ -31,9 +31,8 @@ pub async fn login(item: web::types::Json<UserLoginReq>) -> Result<impl web::Res
         Ok(conn) => {
             let query = sys_user.filter(mobile.eq(&item.mobile));
             debug!("SQL: {}", diesel::debug_query::<diesel::mysql::Mysql, _>(&query).to_string());
-            let user_result = query.first::<SysUser>(conn);
 
-            if let Ok(user) = user_result {
+            if let Ok(user) = query.first::<SysUser>(conn) {
                 info!("select_by_mobile: {:?}", user);
 
                 if user.password.ne(&item.password) {
@@ -77,9 +76,7 @@ fn query_btn_menu(u_id: i64) -> Vec<String> {
     match &mut RB.clone().get() {
         Ok(conn) => {
             let user_role_sql = sql_query("SELECT * FROM sys_user_role where user_id = ? and role_id = 1");
-            let user_role_result = user_role_sql.bind::<Bigint, _>(&u_id).get_result::<SysUserRole>(conn);
-
-            match user_role_result {
+            match user_role_sql.bind::<Bigint, _>(&u_id).get_result::<SysUserRole>(conn) {
                 Ok(_) => {
                     let sys_menu_result = sys_menu.select(api_url).load::<String>(conn);
                     match sys_menu_result {
@@ -104,7 +101,9 @@ fn query_btn_menu(u_id: i64) -> Vec<String> {
                         Ok(btn_list) => {
                             let mut btn_list_data: Vec<String> = Vec::new();
                             for x in btn_list {
-                                btn_list_data.push(x.api_url)
+                                if x.api_url.len() != 0 {
+                                    btn_list_data.push(x.api_url);
+                                }
                             }
                             return btn_list_data;
                         }
@@ -128,10 +127,9 @@ pub async fn query_user_role(item: web::types::Json<QueryUserRoleReq>) -> Result
 
     match &mut RB.clone().get() {
         Ok(conn) => {
-            let user_role_result = sys_user_role.filter(user_id.eq(&item.user_id)).select(role_id).load::<i64>(conn);
             let mut user_role_ids: Vec<i64> = Vec::new();
 
-            if let Ok(ids) = user_role_result {
+            if let Ok(ids) = sys_user_role.filter(user_id.eq(&item.user_id)).select(role_id).load::<i64>(conn) {
                 user_role_ids = ids
             }
 
@@ -178,9 +176,7 @@ pub async fn update_user_role(item: web::types::Json<UpdateUserRoleReq>) -> Resu
 
     let resp = match &mut RB.clone().get() {
         Ok(conn) => {
-            let delete_result = diesel::delete(sys_user_role.filter(user_id.eq(u_id))).execute(conn);
-
-            match delete_result {
+            match diesel::delete(sys_user_role.filter(user_id.eq(u_id))).execute(conn) {
                 Ok(_) => {
                     let mut sys_role_user_list: Vec<SysUserRoleAdd> = Vec::new();
                     for r_id in role_ids {
@@ -225,12 +221,17 @@ pub async fn query_user_menu(req: web::HttpRequest) -> Result<impl web::Responde
         error!("the token format wrong");
         return Ok(web::HttpResponse::Ok().json(&err_result_msg("the token format wrong".to_string())));
     }
-    let token = split_vec[1];
-    let jwt_token_e = JWTToken::verify("123", &token);
-    let jwt_token = match jwt_token_e {
+    let jwt_token = match JWTToken::verify("123", split_vec[1]) {
         Ok(data) => { data }
         Err(err) => {
-            return Ok(web::HttpResponse::Ok().json(&err_result_msg(err.to_string())));
+            return match err {
+                WhoUnfollowedError::JwtTokenError(er) => {
+                    Ok(web::HttpResponse::Ok().json(&err_result_msg(er.to_string())))
+                }
+                _ => {
+                    Ok(web::HttpResponse::Ok().json(&err_result_msg("other err".to_string())))
+                }
+            };
         }
     };
 
@@ -238,17 +239,11 @@ pub async fn query_user_menu(req: web::HttpRequest) -> Result<impl web::Responde
 
     match &mut RB.clone().get() {
         Ok(conn) => {
-            let result = sql_query("select * from sys_user where id = ?")
-                .bind::<Bigint, _>(jwt_token.id)
-                .get_result::<SysUser>(conn);
-
-            return match result {
+            return match sql_query("select * from sys_user where id = ?").bind::<Bigint, _>(jwt_token.id).get_result::<SysUser>(conn) {
                 Ok(user) => {
                     let user_role_sql = sql_query("SELECT * FROM sys_user_role where user_id = ? and role_id = 1");
-                    let user_role_result = user_role_sql.bind::<Bigint, _>(&user.id).get_result::<SysUserRole>(conn);
-
                     let sys_menu_list: Vec<SysMenu>;
-                    match user_role_result {
+                    match user_role_sql.bind::<Bigint, _>(&user.id).get_result::<SysUserRole>(conn) {
                         Ok(_) => {
                             match sys_menu.load::<SysMenu>(conn) {
                                 Ok(s_menus) => {
@@ -261,10 +256,9 @@ pub async fn query_user_menu(req: web::HttpRequest) -> Result<impl web::Responde
                             }
                         }
                         Err(_) => {
-                            let result = sql_query("select u.* from sys_user_role t left join sys_role usr on t.role_id = usr.id left join sys_role_menu srm on usr.id = srm.role_id left join sys_menu u on srm.menu_id = u.id where t.user_id = ? order by u.id asc")
+                            match sql_query("select u.* from sys_user_role t left join sys_role usr on t.role_id = usr.id left join sys_role_menu srm on usr.id = srm.role_id left join sys_menu u on srm.menu_id = u.id where t.user_id = ? order by u.id asc")
                                 .bind::<Bigint, _>(&jwt_token.id)
-                                .load::<SysMenu>(conn);
-                            match result {
+                                .load::<SysMenu>(conn) {
                                 Ok(s_menus) => {
                                     sys_menu_list = s_menus;
                                 }
@@ -287,11 +281,12 @@ pub async fn query_user_menu(req: web::HttpRequest) -> Result<impl web::Responde
                             sys_menu_ids.push(x.id.clone());
                         }
 
-                        btn_menu.push(x.api_url);
+                        if x.api_url.len() != 0 {
+                            btn_menu.push(x.api_url);
+                        }
                     }
 
-                    let menu_result = sys_menu.filter(schema::sys_menu::id.eq_any(sys_menu_ids)).filter(schema::sys_menu::status_id.eq(1)).order(sort.asc()).distinct().load::<SysMenu>(conn);
-                    match menu_result {
+                    match sys_menu.filter(schema::sys_menu::id.eq_any(sys_menu_ids)).filter(schema::sys_menu::status_id.eq(1)).order(sort.asc()).distinct().load::<SysMenu>(conn) {
                         Ok(menu_list) => {
                             for x in menu_list {
                                 sys_user_menu_list.push(MenuUserList {
