@@ -65,8 +65,7 @@ impl<S, Err> Service<web::WebRequest<Err>> for JwtAuthMiddleware<S>
                 }
             };
 
-            let flag: &bool = &jwt_token.permissions.contains(&path);
-            return if *flag {
+            return if jwt_token.permissions.contains(&path) {
                 Ok(ctx.call(&self.service, req).await?)
             } else {
                 log::error!("You has no permissions requested path: {:?}", &path);
