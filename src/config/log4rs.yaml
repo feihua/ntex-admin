@@ -10,13 +10,8 @@ appenders:
     encoder:
       pattern: "{d(%Y-%m-%d %H:%M:%S)} [{f}:{L}] {h({l})} [{M}] - {m}{n}"
 root:
-  level: INFO
+  level: DEBUG
   appenders:
     - stdout
     - requests
-loggers:
-  sql_query_logger:
-    level: debug
-    appenders:
-      - console
-      - file
+
