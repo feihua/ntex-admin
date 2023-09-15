@@ -1,3 +1,5 @@
+use std::collections::HashSet;
+
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -9,7 +11,7 @@ pub struct UserLoginReq {
 
 #[derive(Debug, Deserialize)]
 pub struct QueryUserRoleReq {
-    pub user_id: i64,
+    pub user_id: i32,
 }
 
 
@@ -51,13 +53,13 @@ pub struct QueryUserMenuResp {
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct QueryUserMenuData {
-    pub sys_menu: Vec<MenuUserList>,
-    pub btn_menu: Vec<String>,
+    pub sys_menu: HashSet<MenuUserList>,
+    pub btn_menu: HashSet<String>,
     pub avatar: String,
     pub name: String,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, Eq, Hash, PartialEq)]
 pub struct MenuUserList {
     pub id: i64,
     pub parent_id: i64,
@@ -74,9 +76,9 @@ pub struct UserListReq {
     #[serde(rename = "current")]
     pub page_no: u64,
     #[serde(rename = "pageSize")]
-    pub page_size: i64,
+    pub page_size: u64,
     pub mobile: Option<String>,
-    pub status_id: Option<i32>,
+    pub status_id: Option<i8>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]

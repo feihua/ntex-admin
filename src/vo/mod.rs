@@ -1,6 +1,5 @@
 use std::fmt::Debug;
 
-use diesel::QueryResult;
 use serde::Deserialize;
 use serde::Serialize;
 
@@ -18,17 +17,6 @@ pub struct BaseResponse<T>
     pub data: Option<T>,
 }
 
-// 处理统一返回
-pub fn handle_result(result: QueryResult<usize>) -> BaseResponse<String> {
-    match result {
-        Ok(_u) => {
-            ok_result()
-        }
-        Err(err) => {
-            err_result_msg(err.to_string())
-        }
-    }
-}
 
 
 pub fn ok_result() -> BaseResponse<String> {
@@ -39,7 +27,7 @@ pub fn ok_result() -> BaseResponse<String> {
     }
 }
 
-pub fn ok_result_msg(msg: String) -> BaseResponse<String> {
+pub fn ok_result_msg(msg: &str) -> BaseResponse<String> {
     BaseResponse {
         msg: msg.to_string(),
         code: 0,
@@ -63,7 +51,7 @@ pub fn ok_result_data<T: Serialize + Debug>(data: T) -> BaseResponse<T> {
     }
 }
 
-pub fn err_result_msg(msg: String) -> BaseResponse<String> {
+pub fn err_result_msg(msg: &str) -> BaseResponse<String> {
     BaseResponse {
         msg: msg.to_string(),
         code: 1,

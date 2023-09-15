@@ -50,7 +50,7 @@ impl<S, Err> Service<web::WebRequest<Err>> for JwtAuthMiddleware<S>
             }
 
             if authorization.len() <= 0 {
-                return Ok(req.into_response(HttpResponse::Ok().json(&err_result_msg("token不能为空".to_string()))));
+                return Ok(req.into_response(HttpResponse::Ok().json(&err_result_msg("token不能为空"))));
             }
 
             let jwt_token = match JWTToken::verify("123", &authorization.replace("Bearer ", "")) {
@@ -61,7 +61,7 @@ impl<S, Err> Service<web::WebRequest<Err>> for JwtAuthMiddleware<S>
                         _ => "no math error".to_string()
                     };
                     log::error!("You requested path: {}, token is err: {}", path, er);
-                    return Ok(req.into_response(HttpResponse::Ok().json(&err_result_msg(er))));
+                    return Ok(req.into_response(HttpResponse::Ok().json(&err_result_msg(er.as_str()))));
                 }
             };
 
@@ -69,7 +69,7 @@ impl<S, Err> Service<web::WebRequest<Err>> for JwtAuthMiddleware<S>
                 Ok(ctx.call(&self.service, req).await?)
             } else {
                 log::error!("You has no permissions requested path: {:?}", &path);
-                Ok(req.into_response(HttpResponse::Ok().json(&err_result_msg("无权限访问".to_string()))))
+                Ok(req.into_response(HttpResponse::Ok().json(&err_result_msg("无权限访问"))))
             };
         })
     }

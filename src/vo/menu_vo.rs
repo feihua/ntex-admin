@@ -2,7 +2,7 @@ use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct MenuListReq {
-    pub status_id: Option<i8>,
+    pub menu_name: Option<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -28,9 +28,9 @@ pub struct MenuSaveReq {
     pub status_id: i8,
     pub parent_id: Option<i64>,
     pub menu_name: String,
-    pub menu_url: String,
+    pub menu_url: Option<String>,
     pub icon: Option<String>,
-    pub api_url: String,
+    pub api_url: Option<String>,
     pub remark: Option<String>,
     pub menu_type: i8,
 }
@@ -42,9 +42,9 @@ pub struct MenuUpdateReq {
     pub status_id: i8,
     pub parent_id: i64,
     pub menu_name: String,
-    pub menu_url: String,
+    pub menu_url: Option<String>,
     pub icon: Option<String>,
-    pub api_url: String,
+    pub api_url: Option<String>,
     pub remark: Option<String>,
     pub menu_type: i8,
 }

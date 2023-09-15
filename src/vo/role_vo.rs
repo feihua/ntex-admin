@@ -3,11 +3,11 @@ use serde::{Deserialize, Serialize};
 #[derive(Debug, Serialize, Deserialize)]
 pub struct RoleListReq {
     #[serde(rename = "current")]
-    pub page_no: i64,
+    pub page_no: u64,
     #[serde(rename = "pageSize")]
-    pub page_size: i64,
+    pub page_size: u64,
     pub role_name: Option<String>,
-    pub status_id: Option<i8>,
+    pub status_id: Option<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
