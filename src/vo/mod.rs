@@ -1,6 +1,7 @@
+use rbatis::rbdc::Error;
 use std::fmt::Debug;
+use rbatis::rbdc::db::ExecResult;
 
-use diesel::QueryResult;
 use serde::Deserialize;
 use serde::Serialize;
 
@@ -19,7 +20,7 @@ pub struct BaseResponse<T>
 }
 
 // 处理统一返回
-pub fn handle_result(result: QueryResult<usize>) -> BaseResponse<String> {
+pub fn handle_result(result: Result<ExecResult, Error>) -> BaseResponse<String> {
     match result {
         Ok(_u) => {
             ok_result()

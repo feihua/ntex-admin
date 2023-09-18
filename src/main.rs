@@ -1,10 +1,11 @@
 use std::env;
-
-use diesel::MysqlConnection;
-use diesel::r2d2::{self, ConnectionManager};
+#[macro_use]
+extern crate rbatis;
+#[macro_use]
+extern crate lazy_static;
 use dotenvy::dotenv;
 use ntex::web;
-use once_cell::sync::Lazy;
+use rbatis::RBatis;
 
 use crate::handler::{menu_handler, role_handler, user_handler};
 
@@ -12,23 +13,21 @@ pub mod handler;
 pub mod model;
 pub mod vo;
 pub mod utils;
-pub mod schema;
 pub mod middleware;
 
-type DbPool = r2d2::Pool<ConnectionManager<MysqlConnection>>;
-
-pub static RB: Lazy<DbPool> = Lazy::new(|| {
-    let database_url = env::var("database_url").expect("database_url must be set");
-    let manager = ConnectionManager::<MysqlConnection>::new(database_url);
-    r2d2::Pool::builder().build(manager).expect("Failed to create pool.")
-});
+lazy_static! {
+    static ref RB: RBatis = RBatis::new();
+}
 
 #[ntex::main]
 async fn main() -> std::io::Result<()> {
     log4rs::init_file("src/config/log4rs.yaml", Default::default()).unwrap();
     dotenv().ok();
+    let db_url = env::var("DATABASE_URL").expect("DATABASE_URL is not set in .env file");
+    RB.init(rbdc_mysql::driver::MysqlDriver {}, db_url.as_str()).unwrap();
+
     web::HttpServer::new(|| web::App::new()
-        .wrap(ntex::web::middleware::Logger::default())
+        .wrap(web::middleware::Logger::default())
         .wrap(middleware::auth::JwtAuth)
         .service(web::scope("/api")
             .service(user_handler::login)

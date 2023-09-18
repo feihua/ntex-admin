@@ -9,20 +9,20 @@ pub struct UserLoginReq {
 
 #[derive(Debug, Deserialize)]
 pub struct QueryUserRoleReq {
-    pub user_id: i64,
+    pub user_id: i32,
 }
 
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct QueryUserRoleData {
     pub sys_role_list: Vec<UserRoleList>,
-    pub user_role_ids: Vec<i64>,
+    pub user_role_ids: Vec<i32>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct UserRoleList {
-    pub id: i64,
-    pub status_id: i8,
+    pub id: i32,
+    pub status_id: i32,
     pub sort: i32,
     pub role_name: String,
     pub remark: String,
@@ -32,8 +32,8 @@ pub struct UserRoleList {
 
 #[derive(Debug, Deserialize)]
 pub struct UpdateUserRoleReq {
-    pub user_id: i64,
-    pub role_ids: Vec<i64>,
+    pub user_id: i32,
+    pub role_ids: Vec<i32>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -59,12 +59,12 @@ pub struct QueryUserMenuData {
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct MenuUserList {
-    pub id: i64,
-    pub parent_id: i64,
+    pub id: i32,
+    pub parent_id: i32,
     pub name: String,
     pub path: String,
     pub api_url: String,
-    pub menu_type: i8,
+    pub menu_type: i32,
     pub icon: String,
 }
 
@@ -74,7 +74,7 @@ pub struct UserListReq {
     #[serde(rename = "current")]
     pub page_no: u64,
     #[serde(rename = "pageSize")]
-    pub page_size: i64,
+    pub page_size: u64,
     pub mobile: Option<String>,
     pub status_id: Option<i32>,
 }
@@ -121,7 +121,7 @@ pub struct UserUpdateReq {
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct UserDeleteReq {
-    pub ids: Vec<i64>,
+    pub ids: Vec<i32>,
 }
 
 #[derive(Debug, Deserialize)]
