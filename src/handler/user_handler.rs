@@ -1,17 +1,18 @@
 use std::collections::{HashMap, HashSet};
+
 use log::{error, info};
 use ntex::http::header;
 use ntex::web;
-use crate::RB;
+use ntex::web::types::Json;
 use rbatis::rbdc::datetime::DateTime;
 use rbatis::sql::PageRequest;
 use rbs::to_value;
-use ntex::web::types::Json;
 
 use crate::model::menu::SysMenu;
 use crate::model::role::SysRole;
 use crate::model::user::SysUser;
 use crate::model::user_role::SysUserRole;
+use crate::RB;
 use crate::utils::error::WhoUnfollowedError;
 use crate::utils::jwt_util::JWTToken;
 use crate::vo::{BaseResponse, err_result_msg, err_result_page, handle_result, ok_result_data, ok_result_msg, ok_result_page};
@@ -64,7 +65,7 @@ pub async fn login(item: Json<UserLoginReq>) -> Result<impl web::Responder, web:
         }
 
         Err(err) => {
-            log::info!("select_by_column: {:?}",err);
+            info!("select_by_column: {:?}",err);
             return Ok(web::HttpResponse::Ok().json(&err_result_msg("查询用户异常".to_string())));
         }
     }
@@ -89,7 +90,7 @@ async fn query_btn_menu(id: &i64) -> Vec<String> {
         for x in data.unwrap() {
             btn_menu.push(x.api_url.unwrap_or_default());
         }
-        log::info!("admin login: {:?}",id);
+        info!("admin login: {:?}",id);
         btn_menu
     } else {
         let rb = &mut RB.clone();
@@ -97,13 +98,13 @@ async fn query_btn_menu(id: &i64) -> Vec<String> {
         for x in btn_menu_map {
             btn_menu.push(x.get("api_url").unwrap().to_string());
         }
-        log::info!("ordinary login: {:?}",id);
+        info!("ordinary login: {:?}",id);
         btn_menu
     }
 }
 
 #[web::post("/query_user_role")]
-pub async fn query_user_role(item: web::types::Json<QueryUserRoleReq>) -> Result<impl web::Responder, web::Error> {
+pub async fn query_user_role(item: Json<QueryUserRoleReq>) -> Result<impl web::Responder, web::Error> {
     info!("query_user_role params: {:?}", item);
 
     let user_role = SysUserRole::select_by_column(&mut RB.clone(), "user_id", &item.user_id).await;
@@ -136,7 +137,7 @@ pub async fn query_user_role(item: web::types::Json<QueryUserRoleReq>) -> Result
 }
 
 #[web::post("/update_user_role")]
-pub async fn update_user_role(item: web::types::Json<UpdateUserRoleReq>) -> Result<impl web::Responder, web::Error> {
+pub async fn update_user_role(item: Json<UpdateUserRoleReq>) -> Result<impl web::Responder, web::Error> {
     info!("update_user_role params: {:?}", item);
 
     let user_role = item.0;
@@ -287,7 +288,7 @@ pub async fn query_user_menu(req: web::HttpRequest) -> Result<impl web::Responde
 
 // 查询用户列表
 #[web::post("/user_list")]
-pub async fn user_list(item: web::types::Json<UserListReq>) -> Result<impl web::Responder, web::Error> {
+pub async fn user_list(item: Json<UserListReq>) -> Result<impl web::Responder, web::Error> {
     info!("query user_list params: {:?}", &item);
 
     let mobile = item.mobile.as_deref().unwrap_or_default();
@@ -324,7 +325,7 @@ pub async fn user_list(item: web::types::Json<UserListReq>) -> Result<impl web::
 
 // 添加用户信息
 #[web::post("/user_save")]
-pub async fn user_save(item: web::types::Json<UserSaveReq>) -> Result<impl web::Responder, web::Error> {
+pub async fn user_save(item: Json<UserSaveReq>) -> Result<impl web::Responder, web::Error> {
     info!("user_save params: {:?}", &item);
 
     let user = item.0;
@@ -348,16 +349,16 @@ pub async fn user_save(item: web::types::Json<UserSaveReq>) -> Result<impl web::
 
 // 更新用户信息
 #[web::post("/user_update")]
-pub async fn user_update(item: web::types::Json<UserUpdateReq>) -> Result<impl web::Responder, web::Error> {
+pub async fn user_update(item: Json<UserUpdateReq>) -> Result<impl web::Responder, web::Error> {
     info!("user_update params: {:?}", &item);
 
     let user = item.0;
 
     let result = SysUser::select_by_id(&mut RB.clone(), user.id.clone()).await.unwrap();
 
-    match result {
+    let resp = match result {
         None => {
-            Ok(web::HttpResponse::Ok().json(&err_result_msg("用户不存在".to_string())))
+            err_result_msg("用户不存在".to_string()))
         }
         Some(s_user) => {
             let sys_user = SysUser {
@@ -372,16 +373,16 @@ pub async fn user_update(item: web::types::Json<UserUpdateReq>) -> Result<impl w
                 password: s_user.password,
             };
 
-            let result = SysUser::update_by_column(&mut RB.clone(), &sys_user, "id").await;
-
-            Ok(web::HttpResponse::Ok().json(&handle_result(result)))
+            handle_result(SysUser::update_by_column(&mut RB.clone(), &sys_user, "id").await)
         }
-    }
+    };
+
+    Ok(web::HttpResponse::Ok().json(&resp))
 }
 
 // 删除用户信息
 #[web::post("/user_delete")]
-pub async fn user_delete(item: web::types::Json<UserDeleteReq>) -> Result<impl web::Responder, web::Error> {
+pub async fn user_delete(item: Json<UserDeleteReq>) -> Result<impl web::Responder, web::Error> {
     info!("user_delete params: {:?}", &item);
 
     let ids = item.ids.clone();
@@ -396,7 +397,7 @@ pub async fn user_delete(item: web::types::Json<UserDeleteReq>) -> Result<impl w
 
 // 更新用户密码
 #[web::post("/update_user_password")]
-pub async fn update_user_password(item: web::types::Json<UpdateUserPwdReq>) -> Result<impl web::Responder, web::Error> {
+pub async fn update_user_password(item: Json<UpdateUserPwdReq>) -> Result<impl web::Responder, web::Error> {
     info!("update_user_pwd params: {:?}", &item);
 
     let user_pwd = item.0;

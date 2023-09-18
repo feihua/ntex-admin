@@ -2,9 +2,10 @@ use log::info;
 use ntex::web;
 use ntex::web::types::Json;
 use rbatis::rbdc::datetime::DateTime;
-use rbatis::sql::{PageRequest};
-use crate::model::role::{SysRole};
-use crate::model::menu::{SysMenu};
+use rbatis::sql::PageRequest;
+
+use crate::model::menu::SysMenu;
+use crate::model::role::SysRole;
 use crate::model::role_menu::{query_menu_by_role, SysRoleMenu};
 use crate::model::user_role::SysUserRole;
 use crate::RB;
@@ -179,8 +180,7 @@ pub async fn update_role_menu(item: Json<UpdateRoleMenuReq>) -> Result<impl web:
             Ok(web::HttpResponse::Ok().json(&handle_result(result)))
         }
         Err(err) => {
-            Ok(web::HttpResponse::Ok().json(&err_result_msg(err.to_string()))
-            )
+            Ok(web::HttpResponse::Ok().json(&err_result_msg(err.to_string())))
         }
     }
 }

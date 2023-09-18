@@ -1,8 +1,10 @@
-use std::env;
-#[macro_use]
-extern crate rbatis;
 #[macro_use]
 extern crate lazy_static;
+#[macro_use]
+extern crate rbatis;
+
+use std::env;
+
 use dotenvy::dotenv;
 use ntex::web;
 use rbatis::RBatis;

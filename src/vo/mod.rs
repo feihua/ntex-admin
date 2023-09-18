@@ -1,7 +1,7 @@
-use rbatis::rbdc::Error;
 use std::fmt::Debug;
-use rbatis::rbdc::db::ExecResult;
 
+use rbatis::rbdc::db::ExecResult;
+use rbatis::rbdc::Error;
 use serde::Deserialize;
 use serde::Serialize;
 

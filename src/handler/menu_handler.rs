@@ -2,8 +2,9 @@ use log::info;
 use ntex::web;
 use ntex::web::types::Json;
 use rbatis::rbdc::datetime::DateTime;
+
+use crate::model::menu::SysMenu;
 use crate::RB;
-use crate::model::menu::{SysMenu};
 use crate::vo::{err_result_msg, err_result_page, handle_result, ok_result_page};
 use crate::vo::menu_vo::{*};
 
@@ -17,7 +18,7 @@ pub async fn menu_list(item: Json<MenuListReq>) -> Result<impl web::Responder, w
 
     let mut menu_list: Vec<MenuListData> = Vec::new();
 
-    match result {
+    let resp = match result {
         Ok(sys_menu_list) => {
             for menu in sys_menu_list {
                 menu_list.push(MenuListData {
@@ -36,12 +37,14 @@ pub async fn menu_list(item: Json<MenuListReq>) -> Result<impl web::Responder, w
                     update_time: menu.update_time.unwrap().0.to_string(),
                 })
             }
-            Ok(web::HttpResponse::Ok().json(&ok_result_page(menu_list, 0)))
+            ok_result_page(menu_list, 0)
         }
         Err(err) => {
-            Ok(web::HttpResponse::Ok().json(&err_result_page(menu_list, err.to_string())))
+            err_result_page(menu_list, err.to_string())
         }
-    }
+    };
+
+    Ok(web::HttpResponse::Ok().json(&resp))
 }
 
 // 添加菜单
