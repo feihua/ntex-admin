@@ -5,7 +5,7 @@ use ntex::http::header;
 use ntex::web;
 use ntex::web::types::Json;
 use rbatis::rbdc::datetime::DateTime;
-use rbatis::sql::PageRequest;
+use rbatis::plugin::page::PageRequest;
 use rbs::to_value;
 
 use crate::model::menu::SysMenu;
@@ -358,7 +358,7 @@ pub async fn user_update(item: Json<UserUpdateReq>) -> Result<impl web::Responde
 
     let resp = match result {
         None => {
-            err_result_msg("用户不存在".to_string()))
+            err_result_msg("用户不存在".to_string())
         }
         Some(s_user) => {
             let sys_user = SysUser {

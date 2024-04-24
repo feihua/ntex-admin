@@ -2,7 +2,7 @@ use log::info;
 use ntex::web;
 use ntex::web::types::Json;
 use rbatis::rbdc::datetime::DateTime;
-use rbatis::sql::PageRequest;
+use rbatis::plugin::page::PageRequest;
 
 use crate::model::menu::SysMenu;
 use crate::model::role::SysRole;
