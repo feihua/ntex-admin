@@ -72,19 +72,9 @@ pub async fn login(item: Json<UserLoginReq>) -> Result<impl web::Responder, web:
 }
 
 async fn query_btn_menu(id: &i64) -> Vec<String> {
-    let user_role = SysUserRole::select_by_column(&mut RB.clone(), "user_id", id.clone()).await;
-    // 判断是不是超级管理员
-    let mut is_admin = false;
-
-    for x in user_role.unwrap() {
-        if x.role_id == 1 {
-            is_admin = true;
-            break;
-        }
-    }
-
+    let user_role = SysUserRole::is_admin(&mut RB.clone(), id).await;
     let mut btn_menu: Vec<String> = Vec::new();
-    if is_admin {
+    if user_role.unwrap().len() == 1 {
         let data = SysMenu::select_all(&mut RB.clone()).await;
 
         for x in data.unwrap() {
