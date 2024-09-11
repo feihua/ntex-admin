@@ -34,7 +34,7 @@ impl<S, Err> Service<web::WebRequest<Err>> for JwtAuthMiddleware<S>
     type Response = web::WebResponse;
     type Error = web::Error;
 
-    ntex::forward_poll_ready!(service);
+    ntex::forward_ready!(service);
 
     async fn call(&self, req: web::WebRequest<Err>, ctx: ServiceCtx<'_, Self>) -> Result<Self::Response, Self::Error> {
         let path = req.path().to_string();
