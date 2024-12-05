@@ -8,9 +8,7 @@ use std::env;
 use dotenvy::dotenv;
 use ntex::web;
 use rbatis::RBatis;
-
-use crate::handler::{menu_handler, role_handler, user_handler};
-
+use handler::system::{menu_handler, role_handler, user_handler};
 pub mod handler;
 pub mod model;
 pub mod vo;
