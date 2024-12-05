@@ -1,22 +1,22 @@
 use std::collections::{HashMap, HashSet};
 
-use log::{error, info};
-use ntex::http::header;
-use ntex::web;
-use ntex::web::types::Json;
-use rbatis::rbdc::datetime::DateTime;
-use rbatis::plugin::page::PageRequest;
-use rbs::to_value;
-
+use crate::common::result::BaseResponse;
+use crate::common::result_page::ResponsePage;
 use crate::model::system::menu::SysMenu;
 use crate::model::system::role::SysRole;
 use crate::model::system::user::SysUser;
 use crate::model::system::user_role::SysUserRole;
-use crate::RB;
 use crate::utils::error::WhoUnfollowedError;
 use crate::utils::jwt_util::JWTToken;
-use crate::vo::{BaseResponse, err_result_msg, err_result_page, handle_result, ok_result_data, ok_result_msg, ok_result_page};
 use crate::vo::system::user_vo::*;
+use crate::RB;
+use log::{error, info};
+use ntex::http::header;
+use ntex::web;
+use ntex::web::types::Json;
+use rbatis::plugin::page::PageRequest;
+use rbatis::rbdc::datetime::DateTime;
+use rbs::to_value;
 
 // 后台用户登录
 #[web::post("/login")]
@@ -24,49 +24,45 @@ pub async fn login(item: Json<UserLoginReq>) -> Result<impl web::Responder, web:
     info!("user login params: {:?}", item);
 
     let user_result = SysUser::select_by_mobile(&mut RB.clone(), &item.mobile).await;
-    info!("select_by_mobile: {:?}",user_result);
+    info!("select_by_mobile: {:?}", user_result);
 
     match user_result {
-        Ok(u) => {
-            match u {
-                None => {
-                    return Ok(web::HttpResponse::Ok().json(&err_result_msg("用户不存在".to_string())));
+        Ok(u) => match u {
+            None => Ok(BaseResponse::<String>::err_result_msg("用户不存在".to_string())),
+            Some(user) => {
+                let id = user.id.unwrap();
+                let username = user.user_name;
+                let password = user.password;
+
+                if password.ne(&item.password) {
+                    return Ok(BaseResponse::<String>::err_result_msg("密码不正确".to_string()));
                 }
-                Some(user) => {
-                    let id = user.id.unwrap();
-                    let username = user.user_name;
-                    let password = user.password;
 
-                    if password.ne(&item.password) {
-                        return Ok(web::HttpResponse::Ok().json(&err_result_msg("密码不正确".to_string())));
-                    }
+                let btn_menu = query_btn_menu(&id).await;
 
-                    let btn_menu = query_btn_menu(&id).await;
+                if btn_menu.len() == 0 {
+                    return Ok(BaseResponse::<String>::err_result_msg(
+                        "用户没有分配角色或者菜单,不能登录".to_string(),
+                    ));
+                }
 
-                    if btn_menu.len() == 0 {
-                        return Ok(web::HttpResponse::Ok().json(&err_result_msg("用户没有分配角色或者菜单,不能登录".to_string())));
-                    }
+                match JWTToken::new(id, &username, btn_menu).create_token("123") {
+                    Ok(token) => Ok(BaseResponse::<String>::ok_result_data(token)),
+                    Err(err) => {
+                        let er = match err {
+                            WhoUnfollowedError::JwtTokenError(s) => s,
+                            _ => "no math error".to_string(),
+                        };
 
-                    match JWTToken::new(id, &username, btn_menu).create_token("123") {
-                        Ok(token) => {
-                            Ok(web::HttpResponse::Ok().json(&ok_result_data(token)))
-                        }
-                        Err(err) => {
-                            let er = match err {
-                                WhoUnfollowedError::JwtTokenError(s) => { s }
-                                _ => "no math error".to_string()
-                            };
-
-                            Ok(web::HttpResponse::Ok().json(&err_result_msg(er)))
-                        }
+                        Ok(BaseResponse::<String>::err_result_msg(er.to_string()))
                     }
                 }
             }
-        }
+        },
 
         Err(err) => {
-            info!("select_by_column: {:?}",err);
-            return Ok(web::HttpResponse::Ok().json(&err_result_msg("查询用户异常".to_string())));
+            info!("select_by_column: {:?}", err);
+            Ok(BaseResponse::<String>::err_result_msg("查询用户异常".to_string()))
         }
     }
 }
@@ -80,7 +76,7 @@ async fn query_btn_menu(id: &i64) -> Vec<String> {
         for x in data.unwrap() {
             btn_menu.push(x.api_url.unwrap_or_default());
         }
-        info!("admin login: {:?}",id);
+        info!("admin login: {:?}", id);
         btn_menu
     } else {
         let rb = &mut RB.clone();
@@ -88,13 +84,15 @@ async fn query_btn_menu(id: &i64) -> Vec<String> {
         for x in btn_menu_map {
             btn_menu.push(x.get("api_url").unwrap().to_string());
         }
-        info!("ordinary login: {:?}",id);
+        info!("ordinary login: {:?}", id);
         btn_menu
     }
 }
 
 #[web::post("/query_user_role")]
-pub async fn query_user_role(item: Json<QueryUserRoleReq>) -> Result<impl web::Responder, web::Error> {
+pub async fn query_user_role(
+    item: Json<QueryUserRoleReq>,
+) -> Result<impl web::Responder, web::Error> {
     info!("query_user_role params: {:?}", item);
 
     let user_role = SysUserRole::select_by_column(&mut RB.clone(), "user_id", &item.user_id).await;
@@ -120,14 +118,18 @@ pub async fn query_user_role(item: Json<QueryUserRoleReq>) -> Result<impl web::R
         });
     }
 
-    Ok(web::HttpResponse::Ok().json(&ok_result_data(QueryUserRoleData {
-        sys_role_list,
-        user_role_ids,
-    })))
+    Ok(BaseResponse::<QueryUserRoleData>::ok_result_data(
+        QueryUserRoleData {
+            sys_role_list,
+            user_role_ids,
+        },
+    ))
 }
 
 #[web::post("/update_user_role")]
-pub async fn update_user_role(item: Json<UpdateUserRoleReq>) -> Result<impl web::Responder, web::Error> {
+pub async fn update_user_role(
+    item: Json<UpdateUserRoleReq>,
+) -> Result<impl web::Responder, web::Error> {
     info!("update_user_role params: {:?}", item);
 
     let user_role = item.0;
@@ -136,13 +138,15 @@ pub async fn update_user_role(item: Json<UpdateUserRoleReq>) -> Result<impl web:
     let len = user_role.role_ids.len();
 
     if user_id == 1 {
-        return Ok(web::HttpResponse::Ok().json(&err_result_msg("不能修改超级管理员的角色".to_string())));
+        return Ok(BaseResponse::<String>::err_result_msg(
+            "不能修改超级管理员的角色".to_string(),
+        ));
     }
 
     let sys_result = SysUserRole::delete_by_column(&mut RB.clone(), "user_id", user_id).await;
 
     if sys_result.is_err() {
-        return Ok(web::HttpResponse::Ok().json(&err_result_msg("更新用户角色异常".to_string())));
+        return Ok(BaseResponse::<String>::err_result_msg("更新用户角色异常".to_string()));
     }
 
     let mut sys_role_user_list: Vec<SysUserRole> = Vec::new();
@@ -161,9 +165,11 @@ pub async fn update_user_role(item: Json<UpdateUserRoleReq>) -> Result<impl web:
 
     let result = SysUserRole::insert_batch(&mut RB.clone(), &sys_role_user_list, len as u64).await;
 
-    return Ok(web::HttpResponse::Ok().json(&handle_result(result)));
+    match result {
+        Ok(_u) => Ok(BaseResponse::<String>::ok_result()),
+        Err(err) => Ok(BaseResponse::<String>::err_result_msg(err.to_string())),
+    }
 }
-
 
 #[web::get("/query_user_menu")]
 pub async fn query_user_menu(req: web::HttpRequest) -> Result<impl web::Responder, web::Error> {
@@ -179,23 +185,23 @@ pub async fn query_user_menu(req: web::HttpRequest) -> Result<impl web::Responde
     let split_vec = token.split_whitespace().collect::<Vec<_>>();
     if split_vec.len() != 2 || split_vec[0] != "Bearer" {
         error!("the token format wrong");
-        return Ok(web::HttpResponse::Ok().json(&err_result_msg("the token format wrong".to_string())));
+        return Ok(BaseResponse::<String>::err_result_msg(
+            "the token format wrong".to_string(),
+        ));
     }
     let jwt_token = match JWTToken::verify("123", split_vec[1]) {
-        Ok(data) => { data }
+        Ok(data) => data,
         Err(err) => {
             return match err {
                 WhoUnfollowedError::JwtTokenError(er) => {
-                    Ok(web::HttpResponse::Ok().json(&err_result_msg(er.to_string())))
+                    Ok(BaseResponse::<String>::err_result_msg(er.to_string()))
                 }
-                _ => {
-                    Ok(web::HttpResponse::Ok().json(&err_result_msg("other err".to_string())))
-                }
+                _ => Ok(BaseResponse::<String>::err_result_msg("other err".to_string())),
             };
         }
     };
 
-    info!("query user menu params {:?}",jwt_token);
+    info!("query user menu params {:?}", jwt_token);
 
     let rb = &mut RB.clone();
 
@@ -206,21 +212,28 @@ pub async fn query_user_menu(req: web::HttpRequest) -> Result<impl web::Responde
         Ok(sys_user) => {
             match sys_user {
                 // 用户不存在的情况
-                None => {
-                    return Ok(web::HttpResponse::Ok().json(&err_result_msg("用户不存在!".to_string())));
-                }
+                None => Ok(BaseResponse::<String>::err_result_msg("用户不存在".to_string())),
                 Some(user) => {
                     //role_id为1是超级管理员--判断是不是超级管理员
-                    let sql_str = "select count(id) from sys_user_role where role_id = 1 and user_id = ?";
-                    let count = rb.query_decode::<i32>(sql_str, vec![to_value!(user.id)]).await.unwrap();
+                    let sql_str =
+                        "select count(id) from sys_user_role where role_id = 1 and user_id = ?";
+                    let count = rb
+                        .query_decode::<i32>(sql_str, vec![to_value!(user.id)])
+                        .await
+                        .unwrap();
 
                     let sys_menu_list: Vec<SysMenu>;
 
                     if count > 0 {
-                        sys_menu_list = SysMenu::select_all(&mut RB.clone().clone()).await.unwrap_or_default();
+                        sys_menu_list = SysMenu::select_all(&mut RB.clone().clone())
+                            .await
+                            .unwrap_or_default();
                     } else {
                         let sql_str = "select u.* from sys_user_role t left join sys_role usr on t.role_id = usr.id left join sys_role_menu srm on usr.id = srm.role_id left join sys_menu u on srm.menu_id = u.id where t.user_id = ?";
-                        sys_menu_list = rb.query_decode(sql_str, vec![to_value!(user.id)]).await.unwrap();
+                        sys_menu_list = rb
+                            .query_decode(sql_str, vec![to_value!(user.id)])
+                            .await
+                            .unwrap();
                     }
 
                     let mut sys_menu: Vec<MenuUserList> = Vec::new();
@@ -242,7 +255,9 @@ pub async fn query_user_menu(req: web::HttpRequest) -> Result<impl web::Responde
                     for id in sys_menu_ids {
                         menu_ids.push(id)
                     }
-                    let menu_result = SysMenu::select_by_ids(&mut RB.clone().clone(), &menu_ids).await.unwrap();
+                    let menu_result = SysMenu::select_by_ids(&mut RB.clone().clone(), &menu_ids)
+                        .await
+                        .unwrap();
                     for menu in menu_result {
                         sys_menu.push(MenuUserList {
                             id: menu.id.unwrap(),
@@ -271,7 +286,7 @@ pub async fn query_user_menu(req: web::HttpRequest) -> Result<impl web::Responde
         // 查询用户数据库异常
         Err(err) => {
             error!("err:{}", err.to_string());
-            Ok(web::HttpResponse::Ok().json(&err_result_msg(err.to_string())))
+            Ok(BaseResponse::<String>::err_result_msg(err.to_string()))
         }
     }
 }
@@ -305,11 +320,9 @@ pub async fn user_list(item: Json<UserListReq>) -> Result<impl web::Responder, w
                 })
             }
 
-            Ok(web::HttpResponse::Ok().json(&ok_result_page(list_data, total)))
+            Ok(ResponsePage::ok_result_page(list_data, total))
         }
-        Err(err) => {
-            Ok(web::HttpResponse::Ok().json(&err_result_page(list_data, err.to_string())))
-        }
+        Err(err) => Ok(ResponsePage::err_result_page(list_data, err.to_string())),
     }
 }
 
@@ -329,12 +342,15 @@ pub async fn user_save(item: Json<UserSaveReq>) -> Result<impl web::Responder, w
         mobile: user.mobile,
         user_name: user.user_name,
         remark: user.remark,
-        password: "123456".to_string(),//默认密码为123456,暂时不加密
+        password: "123456".to_string(), //默认密码为123456,暂时不加密
     };
 
     let result = SysUser::insert(&mut RB.clone(), &sys_user).await;
 
-    Ok(web::HttpResponse::Ok().json(&handle_result(result)))
+    match result {
+        Ok(_u) => Ok(BaseResponse::<String>::ok_result()),
+        Err(err) => Ok(BaseResponse::<String>::err_result_msg(err.to_string())),
+    }
 }
 
 // 更新用户信息
@@ -344,12 +360,12 @@ pub async fn user_update(item: Json<UserUpdateReq>) -> Result<impl web::Responde
 
     let user = item.0;
 
-    let result = SysUser::select_by_id(&mut RB.clone(), user.id.clone()).await.unwrap();
+    let result = SysUser::select_by_id(&mut RB.clone(), user.id.clone())
+        .await
+        .unwrap();
 
-    let resp = match result {
-        None => {
-            err_result_msg("用户不存在".to_string())
-        }
+    match result {
+        None => Ok(BaseResponse::<String>::err_result_msg("用户不存在".to_string())),
         Some(s_user) => {
             let sys_user = SysUser {
                 id: Some(user.id),
@@ -363,11 +379,13 @@ pub async fn user_update(item: Json<UserUpdateReq>) -> Result<impl web::Responde
                 password: s_user.password,
             };
 
-            handle_result(SysUser::update_by_column(&mut RB.clone(), &sys_user, "id").await)
+            let res = SysUser::update_by_column(&mut RB.clone(), &sys_user, "id").await;
+            match res {
+                Ok(_u) => Ok(BaseResponse::<String>::ok_result()),
+                Err(err) => Ok(BaseResponse::<String>::err_result_msg(err.to_string())),
+            }
         }
-    };
-
-    Ok(web::HttpResponse::Ok().json(&resp))
+    }
 }
 
 // 删除用户信息
@@ -377,17 +395,20 @@ pub async fn user_delete(item: Json<UserDeleteReq>) -> Result<impl web::Responde
 
     let ids = item.ids.clone();
     for id in ids {
-        if id != 1 {//id为1的用户为系统预留用户,不能删除
+        if id != 1 {
+            //id为1的用户为系统预留用户,不能删除
             let _ = SysUser::delete_by_column(&mut RB.clone(), "id", &id).await;
         }
     }
 
-    Ok(web::HttpResponse::Ok().json(&ok_result_msg("删除用户信息成功".to_string())))
+    Ok(BaseResponse::<String>::err_result_msg("删除用户信息成功".to_string()))
 }
 
 // 更新用户密码
 #[web::post("/update_user_password")]
-pub async fn update_user_password(item: Json<UpdateUserPwdReq>) -> Result<impl web::Responder, web::Error> {
+pub async fn update_user_password(
+    item: Json<UpdateUserPwdReq>,
+) -> Result<impl web::Responder, web::Error> {
     info!("update_user_pwd params: {:?}", &item);
 
     let user_pwd = item.0;
@@ -395,25 +416,22 @@ pub async fn update_user_password(item: Json<UpdateUserPwdReq>) -> Result<impl w
     let sys_user_result = SysUser::select_by_id(&mut RB.clone(), user_pwd.id).await;
 
     match sys_user_result {
-        Ok(user_result) => {
-            match user_result {
-                None => {
-                    Ok(web::HttpResponse::Ok().json(&err_result_msg("用户不存在".to_string())))
-                }
-                Some(mut user) => {
-                    if user.password == user_pwd.pwd {
-                        user.password = user_pwd.re_pwd;
-                        let result = SysUser::update_by_column(&mut RB.clone(), &user, "id").await;
+        Ok(user_result) => match user_result {
+            None => Ok(BaseResponse::<String>::err_result_msg("用户不存在".to_string())),
+            Some(mut user) => {
+                if user.password == user_pwd.pwd {
+                    user.password = user_pwd.re_pwd;
+                    let result = SysUser::update_by_column(&mut RB.clone(), &user, "id").await;
 
-                        Ok(web::HttpResponse::Ok().json(&handle_result(result)))
-                    } else {
-                        Ok(web::HttpResponse::Ok().json(&err_result_msg("旧密码不正确".to_string())))
+                    match result {
+                        Ok(_u) => Ok(BaseResponse::<String>::ok_result()),
+                        Err(err) => Ok(BaseResponse::<String>::err_result_msg(err.to_string())),
                     }
+                } else {
+                    Ok(BaseResponse::<String>::err_result_msg("旧密码不正确".to_string()))
                 }
             }
-        }
-        Err(err) => {
-            Ok(web::HttpResponse::Ok().json(&err_result_msg(err.to_string())))
-        }
+        },
+        Err(err) => Ok(BaseResponse::<String>::err_result_msg(err.to_string())),
     }
 }

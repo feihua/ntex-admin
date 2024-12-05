@@ -14,6 +14,7 @@ pub mod model;
 pub mod vo;
 pub mod utils;
 pub mod middleware;
+pub mod common;
 
 lazy_static! {
     static ref RB: RBatis = RBatis::new();

@@ -1,12 +1,12 @@
+use crate::common::result::BaseResponse;
+use crate::common::result_page::ResponsePage;
+use crate::model::system::menu::SysMenu;
+use crate::vo::system::menu_vo::*;
+use crate::RB;
 use log::info;
 use ntex::web;
 use ntex::web::types::Json;
 use rbatis::rbdc::datetime::DateTime;
-
-use crate::model::system::menu::SysMenu;
-use crate::RB;
-use crate::vo::{err_result_msg, err_result_page, handle_result, ok_result_page};
-use crate::vo::system::menu_vo::{*};
 
 // 查询菜单
 #[web::post("/menu_list")]
@@ -18,7 +18,7 @@ pub async fn menu_list(item: Json<MenuListReq>) -> Result<impl web::Responder, w
 
     let mut menu_list: Vec<MenuListData> = Vec::new();
 
-    let resp = match result {
+    match result {
         Ok(sys_menu_list) => {
             for menu in sys_menu_list {
                 menu_list.push(MenuListData {
@@ -37,14 +37,10 @@ pub async fn menu_list(item: Json<MenuListReq>) -> Result<impl web::Responder, w
                     update_time: menu.update_time.unwrap().0.to_string(),
                 })
             }
-            ok_result_page(menu_list, 0)
+            Ok(ResponsePage::ok_result(menu_list))
         }
-        Err(err) => {
-            err_result_page(menu_list, err.to_string())
-        }
-    };
-
-    Ok(web::HttpResponse::Ok().json(&resp))
+        Err(err) => Ok(ResponsePage::err_result_page(menu_list, err.to_string())),
+    }
 }
 
 // 添加菜单
@@ -70,7 +66,10 @@ pub async fn menu_save(item: Json<MenuSaveReq>) -> Result<impl web::Responder, w
 
     let result = SysMenu::insert(&mut RB.clone(), &sys_menu).await;
 
-    Ok(web::HttpResponse::Ok().json(&handle_result(result)))
+    match result {
+        Ok(_u) => Ok(BaseResponse::<String>::ok_result()),
+        Err(err) => Ok(BaseResponse::<String>::err_result_msg(err.to_string())),
+    }
 }
 
 // 更新菜单
@@ -96,7 +95,10 @@ pub async fn menu_update(item: Json<MenuUpdateReq>) -> Result<impl web::Responde
 
     let result = SysMenu::update_by_column(&mut RB.clone(), &sys_menu, "id").await;
 
-    Ok(web::HttpResponse::Ok().json(&handle_result(result)))
+    match result {
+        Ok(_u) => Ok(BaseResponse::<String>::ok_result()),
+        Err(err) => Ok(BaseResponse::<String>::err_result_msg(err.to_string())),
+    }
 }
 
 // 删除菜单信息
@@ -105,13 +107,18 @@ pub async fn menu_delete(item: Json<MenuDeleteReq>) -> Result<impl web::Responde
     info!("menu_delete params: {:?}", &item);
 
     //有下级的时候 不能直接删除
-    let menus = SysMenu::select_by_column(&mut RB.clone(), "parent_id", &item.id).await.unwrap_or_default();
+    let menus = SysMenu::select_by_column(&mut RB.clone(), "parent_id", &item.id)
+        .await
+        .unwrap_or_default();
 
     if menus.len() > 0 {
-        return Ok(web::HttpResponse::Ok().json(&err_result_msg("有下级菜单,不能直接删除".to_string())));
+        return Ok(BaseResponse::<String>::err_result_msg("有下级菜单,不能直接删除".to_string()));
     }
 
     let result = SysMenu::delete_by_column(&mut RB.clone(), "id", &item.id).await;
 
-    Ok(web::HttpResponse::Ok().json(&handle_result(result)))
+    match result {
+        Ok(_u) => Ok(BaseResponse::<String>::ok_result()),
+        Err(err) => Ok(BaseResponse::<String>::err_result_msg(err.to_string())),
+    }
 }
