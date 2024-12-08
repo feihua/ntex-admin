@@ -2,14 +2,13 @@ use std::env;
 
 use ntex::web;
 use sea_orm::{Database, DatabaseConnection};
-
-use crate::handler::{menu_handler, role_handler, user_handler};
-
+use handler::system::{menu_handler, role_handler, user_handler};
 pub mod handler;
 pub mod model;
 pub mod vo;
 pub mod utils;
 pub mod middleware;
+pub mod common;
 
 #[derive(Debug, Clone)]
 pub struct AppState {

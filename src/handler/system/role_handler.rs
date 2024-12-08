@@ -1,15 +1,15 @@
 use log::info;
 use ntex::web;
-use ntex::web::{Error, HttpResponse, Responder};
+use ntex::web::{Error, Responder};
 use ntex::web::types::{Json, State};
 use sea_orm::{ColumnTrait, EntityTrait, NotSet, PaginatorTrait, QueryFilter, QueryTrait};
 use sea_orm::ActiveValue::Set;
 
 use crate::AppState;
+use crate::common::result::BaseResponse;
 use crate::model::{sys_role, sys_role_menu, sys_user_role};
 use crate::model::prelude::{SysMenu, SysRole, SysRoleMenu, SysUserRole};
-use crate::vo::{err_result_msg, ok_result_data, ok_result_msg, ok_result_page};
-use crate::vo::role_vo::*;
+use crate::vo::system::role_vo::*;
 
 // 查询角色列表
 #[web::post("/role_list")]
@@ -42,7 +42,7 @@ pub async fn role_list(item: Json<RoleListReq>, data: State<AppState>) -> Result
         })
     }
 
-    Ok(HttpResponse::Ok().json(&ok_result_page(role_list, total)))
+    Ok(BaseResponse::ok_result_page(role_list, total))
 }
 
 // 添加角色信息
@@ -62,8 +62,11 @@ pub async fn role_save(item: Json<RoleSaveReq>, data: State<AppState>) -> Result
         ..Default::default()
     };
 
-    SysRole::insert(sys_role).exec(conn).await.unwrap();
-    Ok(HttpResponse::Ok().json(&ok_result_msg("添加角色成功!")))
+    let result = SysRole::insert(sys_role).exec(conn).await;
+    match result {
+        Ok(_u) => Ok(BaseResponse::<String>::ok_result()),
+        Err(err) => Ok(BaseResponse::<String>::err_result_msg(err.to_string())),
+    }
 }
 
 // 更新角色信息
@@ -75,7 +78,7 @@ pub async fn role_update(item: Json<RoleUpdateReq>, data: State<AppState>) -> Re
     let role = item.0;
 
     if SysRole::find_by_id(role.id.clone()).one(conn).await.unwrap_or_default().is_none() {
-        return Ok(HttpResponse::Ok().json(&err_result_msg("角色不存在,不能更新!")));
+        return Ok(BaseResponse::<String>::err_result_msg("角色不存在,不能更新!".to_string()));
     }
     let sys_role = sys_role::ActiveModel {
         id: Set(role.id),
@@ -86,8 +89,11 @@ pub async fn role_update(item: Json<RoleUpdateReq>, data: State<AppState>) -> Re
         ..Default::default()
     };
 
-    SysRole::update(sys_role).exec(conn).await.unwrap();
-    Ok(HttpResponse::Ok().json(&ok_result_msg("更新角色成功!")))
+    let result = SysRole::update(sys_role).exec(conn).await;
+    match result {
+        Ok(_u) => Ok(BaseResponse::<String>::ok_result()),
+        Err(err) => Ok(BaseResponse::<String>::err_result_msg(err.to_string())),
+    }
 }
 
 // 删除角色信息
@@ -99,11 +105,14 @@ pub async fn role_delete(item: Json<RoleDeleteReq>, data: State<AppState>) -> Re
     let ids = item.ids.clone();
 
     if SysUserRole::find().filter(sys_user_role::Column::RoleId.is_in(ids)).count(conn).await.unwrap_or_default() > 0 {
-        return Ok(HttpResponse::Ok().json(&err_result_msg("角色已被使用,不能直接删除！")));
+        return Ok(BaseResponse::<String>::err_result_msg("角色已被使用,不能直接删除！".to_string()));
     }
 
-    SysRole::delete_many().filter(sys_role::Column::Id.is_in(item.ids.clone())).exec(conn).await.unwrap();
-    Ok(HttpResponse::Ok().json(&ok_result_msg("删除角色信息成功!")))
+    let result = SysRole::delete_many().filter(sys_role::Column::Id.is_in(item.ids.clone())).exec(conn).await;
+    match result {
+        Ok(_u) => Ok(BaseResponse::<String>::ok_result()),
+        Err(err) => Ok(BaseResponse::<String>::err_result_msg(err.to_string())),
+    }
 }
 
 // 查询角色关联的菜单
@@ -135,7 +144,7 @@ pub async fn query_role_menu(item: Json<QueryRoleMenuReq>, data: State<AppState>
         }
     }
 
-    Ok(HttpResponse::Ok().json(&ok_result_data(QueryRoleMenuData { role_menus: role_menu_ids, menu_list: menu_data_list })))
+    Ok(BaseResponse::ok_result_data(QueryRoleMenuData { role_menus: role_menu_ids, menu_list: menu_data_list }))
 }
 
 // 更新角色关联的菜单
@@ -160,6 +169,9 @@ pub async fn update_role_menu(item: Json<UpdateRoleMenuReq>, data: State<AppStat
             ..Default::default()
         })
     }
-    SysRoleMenu::insert_many(menu_role).exec(conn).await.unwrap();
-    Ok(HttpResponse::Ok().json(&ok_result_msg("更新角色关联的菜单!")))
+    let result = SysRoleMenu::insert_many(menu_role).exec(conn).await;
+    match result {
+        Ok(_u) => Ok(BaseResponse::<String>::ok_result()),
+        Err(err) => Ok(BaseResponse::<String>::err_result_msg(err.to_string())),
+    }
 }

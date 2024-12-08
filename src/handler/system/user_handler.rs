@@ -2,19 +2,19 @@ use std::collections::HashSet;
 
 use log::info;
 use ntex::http::header;
-use ntex::web::{Error, HttpResponse, Responder};
+use ntex::web::{Error, Responder};
 use ntex::web;
 use ntex::web::types::{Json, State};
 use sea_orm::{ActiveModelTrait, ColumnTrait, ConnectionTrait, DatabaseBackend, DatabaseConnection, EntityTrait, NotSet, PaginatorTrait, QueryFilter, QueryOrder, QueryTrait, Statement};
 use sea_orm::ActiveValue::Set;
 
 use crate::AppState;
+use crate::common::result::BaseResponse;
 use crate::model::{sys_menu, sys_user, sys_user_role};
 use crate::model::prelude::{SysMenu, SysRole, SysUser, SysUserRole};
 use crate::utils::error::WhoUnfollowedError;
 use crate::utils::jwt_util::JWTToken;
-use crate::vo::{err_result_msg, ok_result_data, ok_result_msg, ok_result_page};
-use crate::vo::user_vo::*;
+use crate::vo::system::user_vo::*;
 
 // 后台用户登录
 #[web::post("/login")]
@@ -26,7 +26,7 @@ pub async fn login(item: Json<UserLoginReq>, data: State<AppState>) -> Result<im
     info!("select_by_mobile: {:?}",user_result);
 
     if user_result.is_none() {
-        return Ok(HttpResponse::Ok().json(&err_result_msg("用户不存在!")));
+        return Ok(BaseResponse::<String>::err_result_msg("用户不存在!".to_string()));
     }
 
     let user = user_result.unwrap();
@@ -36,18 +36,18 @@ pub async fn login(item: Json<UserLoginReq>, data: State<AppState>) -> Result<im
     let password = user.password;
 
     if password.ne(&item.password) {
-        return Ok(HttpResponse::Ok().json(&err_result_msg("密码不正确!")));
+        return Ok(BaseResponse::<String>::err_result_msg("密码不正确!".to_string()));
     }
 
     let btn_menu = query_btn_menu(conn, id.clone()).await;
 
     if btn_menu.len() == 0 {
-        return Ok(HttpResponse::Ok().json(&err_result_msg("用户没有分配角色或者菜单,不能登录!")));
+        return Ok(BaseResponse::<String>::err_result_msg("用户没有分配角色或者菜单,不能登录!".to_string()));
     }
 
     match JWTToken::new(id, &username, btn_menu).create_token("123") {
         Ok(token) => {
-            Ok(HttpResponse::Ok().json(&ok_result_data(token)))
+            Ok(BaseResponse::ok_result_data(token))
         }
         Err(err) => {
             let er = match err {
@@ -55,7 +55,7 @@ pub async fn login(item: Json<UserLoginReq>, data: State<AppState>) -> Result<im
                 _ => "no math error".to_string()
             };
 
-            Ok(HttpResponse::Ok().json(&err_result_msg(&er)))
+            Ok(BaseResponse::<String>::err_result_msg(er.to_string()))
         }
     }
 }
@@ -104,7 +104,7 @@ pub async fn query_user_role(item: Json<QueryUserRoleReq>, data: State<AppState>
         });
     }
 
-    Ok(HttpResponse::Ok().json(&ok_result_data(QueryUserRoleData { sys_role_list, user_role_ids })))
+    Ok(BaseResponse::ok_result_data(QueryUserRoleData { sys_role_list, user_role_ids }))
 }
 
 #[web::post("/update_user_role")]
@@ -117,7 +117,7 @@ pub async fn update_user_role(item: Json<UpdateUserRoleReq>, data: State<AppStat
     let role_ids = &user_role.role_ids;
 
     if user_id == 1 {
-        return Ok(HttpResponse::Ok().json(&err_result_msg("不能修改超级管理员的角色!")));
+        return Ok(BaseResponse::<String>::err_result_msg("不能修改超级管理员的角色!".to_string()));
     }
 
     SysUserRole::delete_many().filter(sys_user_role::Column::UserId.eq(user_id)).exec(conn).await.unwrap();
@@ -138,8 +138,11 @@ pub async fn update_user_role(item: Json<UpdateUserRoleReq>, data: State<AppStat
         })
     }
 
-    SysUserRole::insert_many(sys_role_user_list).exec(conn).await.unwrap();
-    Ok(HttpResponse::Ok().json(&ok_result_msg("更新用户角色信息成功!")))
+    let result = SysUserRole::insert_many(sys_role_user_list).exec(conn).await;
+    match result {
+        Ok(_u) => Ok(BaseResponse::<String>::ok_result()),
+        Err(err) => Ok(BaseResponse::<String>::err_result_msg(err.to_string())),
+    }
 }
 
 
@@ -156,7 +159,7 @@ pub async fn query_user_menu(req: web::HttpRequest, data: State<AppState>) -> Re
 
     let split_vec = token.split_whitespace().collect::<Vec<_>>();
     if split_vec.len() != 2 || split_vec[0] != "Bearer" {
-        return Ok(HttpResponse::Ok().json(&err_result_msg("the token format wrong")));
+        return Ok(BaseResponse::<String>::err_result_msg("the token format wrong".to_string()));
     }
     let token = split_vec[1];
     let jwt_token_e = JWTToken::verify("123", &token);
@@ -165,10 +168,10 @@ pub async fn query_user_menu(req: web::HttpRequest, data: State<AppState>) -> Re
         Err(err) => {
             return match err {
                 WhoUnfollowedError::JwtTokenError(er) => {
-                    Ok(HttpResponse::Ok().json(&err_result_msg(er.as_str())))
+                    Ok(BaseResponse::<String>::err_result_msg(er))
                 }
                 _ => {
-                    Ok(HttpResponse::Ok().json(&err_result_msg("other err")))
+                    Ok(BaseResponse::<String>::err_result_msg("other err".to_string()))
                 }
             };
         }
@@ -179,7 +182,7 @@ pub async fn query_user_menu(req: web::HttpRequest, data: State<AppState>) -> Re
     let conn = &data.conn;
 
     if SysUser::find_by_id(jwt_token.id.clone()).one(conn).await.unwrap_or_default().is_none() {
-        return Ok(HttpResponse::Ok().json(&err_result_msg("用户不存在!")));
+        return Ok(BaseResponse::<String>::err_result_msg("用户不存在!".to_string()));
     }
 
     let sys_menu_list: Vec<sys_menu::Model>;
@@ -226,7 +229,7 @@ pub async fn query_user_menu(req: web::HttpRequest, data: State<AppState>) -> Re
 
     let avatar = "https://gw.alipayobjects.com/zos/antfincdn/XAosXuNZyF/BiazfanxmamNRoxxVxka.png".to_string();
 
-    Ok(HttpResponse::Ok().json(&ok_result_data(QueryUserMenuData { sys_menu, btn_menu, avatar, name: jwt_token.username })))
+    Ok(BaseResponse::ok_result_data(QueryUserMenuData { sys_menu, btn_menu, avatar, name: jwt_token.username }))
 }
 
 // 查询用户列表
@@ -259,7 +262,7 @@ pub async fn user_list(item: Json<UserListReq>, data: State<AppState>) -> Result
         })
     }
 
-    Ok(HttpResponse::Ok().json(&ok_result_page(list_data, total)))
+    Ok(BaseResponse::ok_result_page(list_data, total))
 }
 
 // 添加用户信息
@@ -279,8 +282,11 @@ pub async fn user_save(item: Json<UserSaveReq>, data: State<AppState>) -> Result
         ..Default::default()
     };
 
-    SysUser::insert(sys_user).exec(conn).await.unwrap();
-    Ok(HttpResponse::Ok().json(&ok_result_msg("添加用户信息成功!")))
+    let result = SysUser::insert(sys_user).exec(conn).await;
+    match result {
+        Ok(_u) => Ok(BaseResponse::<String>::ok_result()),
+        Err(err) => Ok(BaseResponse::<String>::err_result_msg(err.to_string())),
+    }
 }
 
 // 更新用户信息
@@ -292,7 +298,7 @@ pub async fn user_update(item: Json<UserUpdateReq>, data: State<AppState>) -> Re
 
     if SysUser::find_by_id(user.id.clone()).one(conn).await.unwrap_or_default().is_none() {
         // return  Ok(HttpResponse::Ok().json(err_result_msg("用户不存在!")));
-        return Ok(HttpResponse::Ok().json(&err_result_msg("用户不存在!")));
+        return Ok(BaseResponse::<String>::err_result_msg("用户不存在!".to_string()));
     }
 
     let sys_user = sys_user::ActiveModel {
@@ -305,8 +311,11 @@ pub async fn user_update(item: Json<UserUpdateReq>, data: State<AppState>) -> Re
         ..Default::default()
     };
 
-    SysUser::update(sys_user).exec(conn).await.unwrap();
-    Ok(HttpResponse::Ok().json(&ok_result_msg("更新用户信息成功!")))
+    let result = SysUser::update(sys_user).exec(conn).await;
+    match result {
+        Ok(_u) => Ok(BaseResponse::<String>::ok_result()),
+        Err(err) => Ok(BaseResponse::<String>::err_result_msg(err.to_string())),
+    }
 }
 
 // 删除用户信息
@@ -321,7 +330,7 @@ pub async fn user_delete(item: Json<UserDeleteReq>, data: State<AppState>) -> Re
         }
     }
 
-    Ok(HttpResponse::Ok().json(&ok_result_msg("删除用户信息成功!")))
+    Ok(BaseResponse::<String>::ok_result_msg("删除用户信息成功!".to_string()))
 }
 
 // 更新用户密码
@@ -333,7 +342,7 @@ pub async fn update_user_password(item: Json<UpdateUserPwdReq>, data: State<AppS
 
     let result = SysUser::find_by_id(user_pwd.id).one(conn).await.unwrap_or_default();
     if result.is_none() {
-        return Ok(HttpResponse::Ok().json(&err_result_msg("用户不存在!")));
+        return Ok(BaseResponse::<String>::err_result_msg("用户不存在!".to_string()));
     };
 
     let user = result.unwrap();
@@ -341,9 +350,12 @@ pub async fn update_user_password(item: Json<UpdateUserPwdReq>, data: State<AppS
         let mut s_user: sys_user::ActiveModel = user.into();
         s_user.password = Set(user_pwd.re_pwd);
 
-        s_user.update(conn).await.unwrap();
-        Ok(HttpResponse::Ok().json(&ok_result_msg("更新用户密码成功!")))
+        let rr = s_user.update(conn).await;
+        match rr {
+            Ok(_u) => Ok(BaseResponse::<String>::ok_result()),
+            Err(err) => Ok(BaseResponse::<String>::err_result_msg(err.to_string())),
+        }
     } else {
-        Ok(HttpResponse::Ok().json(&err_result_msg("旧密码不正确!")))
+        Ok(BaseResponse::<String>::err_result_msg("旧密码不正确!".to_string()))
     }
 }
