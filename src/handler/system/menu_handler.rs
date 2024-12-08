@@ -2,13 +2,12 @@ use diesel::{ExpressionMethods, QueryDsl, RunQueryDsl};
 use diesel::associations::HasTable;
 use log::{debug, error, info};
 use ntex::web;
-
+use crate::common::result::BaseResponse;
 use crate::model::menu::{SysMenu, SysMenuAdd, SysMenuUpdate};
 use crate::RB;
 use crate::schema::sys_menu::{id, parent_id, sort, status_id};
 use crate::schema::sys_menu::dsl::sys_menu;
-use crate::vo::{err_result_msg, handle_result, ok_result_data};
-use crate::vo::menu_vo::{*};
+use crate::vo::system::menu_vo::{*};
 
 // 查询菜单
 #[web::post("/menu_list")]
@@ -43,11 +42,11 @@ pub async fn menu_list(item: web::types::Json<MenuListReq>) -> Result<impl web::
                 }
             }
 
-            Ok(web::HttpResponse::Ok().json(&ok_result_data(menu_list)))
+            Ok(BaseResponse::ok_result_page(menu_list,0))
         }
         Err(err) => {
             error!("err:{}", err.to_string());
-            Ok(web::HttpResponse::Ok().json(&err_result_msg(err.to_string())))
+            Ok(BaseResponse::<String>::err_result_msg(err.to_string()))
         }
     }
 }
@@ -70,17 +69,20 @@ pub async fn menu_save(item: web::types::Json<MenuSaveReq>) -> Result<impl web::
         menu_type: menu.menu_type,
     };
 
-    let resp = match &mut RB.clone().get() {
+    match &mut RB.clone().get() {
         Ok(conn) => {
-            handle_result(diesel::insert_into(sys_menu::table()).values(menu_add).execute(conn))
+            let result = diesel::insert_into(sys_menu::table()).values(menu_add).execute(conn);
+            match result {
+                Ok(_u) => Ok(BaseResponse::<String>::ok_result()),
+                Err(err) => Ok(BaseResponse::<String>::err_result_msg(err.to_string())),
+            }
         }
         Err(err) => {
             error!("err:{}", err.to_string());
-            err_result_msg(err.to_string())
+            Ok(BaseResponse::<String>::err_result_msg(err.to_string()))
         }
-    };
+    }
 
-    Ok(web::HttpResponse::Ok().json(&resp))
 }
 
 // 更新菜单
@@ -102,17 +104,20 @@ pub async fn menu_update(item: web::types::Json<MenuUpdateReq>) -> Result<impl w
         menu_type: menu.menu_type,
     };
 
-    let resp = match &mut RB.clone().get() {
+    match &mut RB.clone().get() {
         Ok(conn) => {
-            handle_result(diesel::update(sys_menu).filter(id.eq(&menu.id)).set(s_menu).execute(conn))
+            let result = diesel::update(sys_menu).filter(id.eq(&menu.id)).set(s_menu).execute(conn);
+            match result {
+                Ok(_u) => Ok(BaseResponse::<String>::ok_result()),
+                Err(err) => Ok(BaseResponse::<String>::err_result_msg(err.to_string())),
+            }
         }
         Err(err) => {
             error!("err:{}", err.to_string());
-            err_result_msg(err.to_string())
+            Ok(BaseResponse::<String>::err_result_msg(err.to_string()))
         }
-    };
+    }
 
-    Ok(web::HttpResponse::Ok().json(&resp))
 }
 
 // 删除菜单信息
@@ -120,27 +125,29 @@ pub async fn menu_update(item: web::types::Json<MenuUpdateReq>) -> Result<impl w
 pub async fn menu_delete(item: web::types::Json<MenuDeleteReq>) -> Result<impl web::Responder, web::Error> {
     info!("menu_delete params: {:?}", &item);
 
-    let resp = match &mut RB.clone().get() {
+    match &mut RB.clone().get() {
         Ok(conn) => {
             match sys_menu.filter(parent_id.eq(&item.id)).count().get_result::<i64>(conn) {
                 Ok(count) => {
                     if count > 0 {
                         error!("err:{}", "有下级菜单,不能直接删除".to_string());
-                        return Ok(web::HttpResponse::Ok().json(&err_result_msg("有下级菜单,不能直接删除".to_string())));
+                        return Ok(BaseResponse::<String>::err_result_msg("有下级菜单,不能直接删除".to_string()));
                     }
-                    handle_result(diesel::delete(sys_menu.filter(id.eq(&item.id))).execute(conn))
+                    let result = diesel::delete(sys_menu.filter(id.eq(&item.id))).execute(conn);
+                    match result {
+                        Ok(_u) => Ok(BaseResponse::<String>::ok_result()),
+                        Err(err) => Ok(BaseResponse::<String>::err_result_msg(err.to_string())),
+                    }
                 }
                 Err(err) => {
                     error!("err:{}", err.to_string());
-                    err_result_msg(err.to_string())
+                    Ok(BaseResponse::<String>::err_result_msg(err.to_string()))
                 }
             }
         }
         Err(err) => {
             error!("err:{}", err.to_string());
-            err_result_msg(err.to_string())
+            Ok(BaseResponse::<String>::err_result_msg(err.to_string()))
         }
-    };
-
-    Ok(web::HttpResponse::Ok().json(&resp))
+    }
 }

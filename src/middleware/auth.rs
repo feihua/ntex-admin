@@ -3,10 +3,9 @@ use ntex::http::header;
 use ntex::service::{Middleware, Service, ServiceCtx};
 use ntex::web;
 use ntex::web::HttpResponse;
-
-use crate::utils::error::WhoUnfollowedError;
+use crate::common::error::WhoUnfollowedError;
+use crate::common::result::BaseResponse;
 use crate::utils::jwt_util::JWTToken;
-use crate::vo::err_result_msg;
 
 // There are two steps in middleware processing.
 // 1. Middleware initialization, middleware factory gets called with
@@ -47,7 +46,12 @@ impl<S, Err> Service<web::WebRequest<Err>> for JwtAuthMiddleware<S>
         }
 
         if authorization.len() <= 0 {
-            return Ok(req.into_response(HttpResponse::Ok().json(&err_result_msg("token不能为空".to_string()))));
+            let res: BaseResponse<String> = BaseResponse {
+                code: 1,
+                msg: "token不能为空".to_string(),
+                data: None,
+            };
+            return Ok(req.into_response(HttpResponse::Ok().json(&res)));
         }
 
         let jwt_token = match JWTToken::verify("123", &authorization.replace("Bearer ", "")) {
@@ -58,7 +62,12 @@ impl<S, Err> Service<web::WebRequest<Err>> for JwtAuthMiddleware<S>
                     _ => "no math error".to_string()
                 };
                 log::error!("You requested path: {}, token is err: {}", path, er);
-                return Ok(req.into_response(HttpResponse::Ok().json(&err_result_msg(er))));
+                let res: BaseResponse<String> = BaseResponse {
+                    code: 1,
+                    msg: er,
+                    data: None,
+                };
+                return Ok(req.into_response(HttpResponse::Ok().json(&res)));
             }
         };
 
@@ -66,7 +75,12 @@ impl<S, Err> Service<web::WebRequest<Err>> for JwtAuthMiddleware<S>
             Ok(ctx.call(&self.service, req).await?)
         } else {
             log::error!("You has no permissions requested path: {:?}", &path);
-            Ok(req.into_response(HttpResponse::Ok().json(&err_result_msg("无权限访问".to_string()))))
+            let res: BaseResponse<String> = BaseResponse {
+                code: 1,
+                msg: "无权限访问".to_string(),
+                data: None,
+            };
+            Ok(req.into_response(HttpResponse::Ok().json(&res)))
         };
     }
 }

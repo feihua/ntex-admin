@@ -5,15 +5,14 @@ use diesel::r2d2::{self, ConnectionManager};
 use dotenvy::dotenv;
 use ntex::web;
 use once_cell::sync::Lazy;
-
-use crate::handler::{menu_handler, role_handler, user_handler};
-
+use handler::system::{menu_handler, role_handler, user_handler};
 pub mod handler;
 pub mod model;
 pub mod vo;
 pub mod utils;
 pub mod schema;
 pub mod middleware;
+pub mod common;
 
 type DbPool = r2d2::Pool<ConnectionManager<MysqlConnection>>;
 

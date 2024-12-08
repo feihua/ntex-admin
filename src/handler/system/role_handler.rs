@@ -4,6 +4,7 @@ use log::{debug, error, info};
 use ntex::web;
 
 use crate::{RB, schema};
+use crate::common::result::BaseResponse;
 use crate::model::menu::SysMenu;
 use crate::model::role::{SysRole, SysRoleAdd, SysRoleUpdate};
 use crate::model::role_menu::SysRoleMenuAdd;
@@ -13,8 +14,7 @@ use crate::schema::sys_role::dsl::sys_role;
 use crate::schema::sys_role_menu::{menu_id, role_id};
 use crate::schema::sys_role_menu::dsl::sys_role_menu;
 use crate::schema::sys_user_role::dsl::sys_user_role;
-use crate::vo::{err_result_msg, handle_result, ok_result_data, ok_result_page};
-use crate::vo::role_vo::*;
+use crate::vo::system::role_vo::*;
 
 // 查询角色列表
 #[web::post("/role_list")]
@@ -49,11 +49,11 @@ pub async fn role_list(item: web::types::Json<RoleListReq>) -> Result<impl web::
                 }
             }
 
-            Ok(web::HttpResponse::Ok().json(&ok_result_page(list, 10)))
+            Ok(BaseResponse::<Vec<RoleListData>>::ok_result_page(list,10))
         }
         Err(err) => {
             error!("err:{}", err.to_string());
-            Ok(web::HttpResponse::Ok().json(&err_result_msg(err.to_string())))
+            Ok(BaseResponse::<String>::err_result_msg(err.to_string()))
         }
     }
 }
@@ -73,17 +73,19 @@ pub async fn role_save(item: web::types::Json<RoleSaveReq>) -> Result<impl web::
         remark: role.remark.unwrap(),
     };
 
-    let resp = match &mut RB.clone().get() {
+    match &mut RB.clone().get() {
         Ok(conn) => {
-            handle_result(diesel::insert_into(sys_role::table()).values(role_add).execute(conn))
+            let result = diesel::insert_into(sys_role::table()).values(role_add).execute(conn);
+            match result {
+                Ok(_u) => Ok(BaseResponse::<String>::ok_result()),
+                Err(err) => Ok(BaseResponse::<String>::err_result_msg(err.to_string())),
+            }
         }
         Err(err) => {
             error!("err:{}", err.to_string());
-            err_result_msg(err.to_string())
+            Ok(BaseResponse::<String>::err_result_msg(err.to_string()))
         }
-    };
-
-    Ok(web::HttpResponse::Ok().json(&resp))
+    }
 }
 
 // 更新角色信息
@@ -101,17 +103,20 @@ pub async fn role_update(item: web::types::Json<RoleUpdateReq>) -> Result<impl w
         remark: role.remark.unwrap_or_default(),
     };
 
-    let resp = match &mut RB.clone().get() {
+    match &mut RB.clone().get() {
         Ok(conn) => {
-            handle_result(diesel::update(sys_role).filter(id.eq(&role.id)).set(s_role).execute(conn))
+            let result = diesel::update(sys_role).filter(id.eq(&role.id)).set(s_role).execute(conn);
+            match result {
+                Ok(_u) => Ok(BaseResponse::<String>::ok_result()),
+                Err(err) => Ok(BaseResponse::<String>::err_result_msg(err.to_string())),
+            }
         }
         Err(err) => {
             error!("err:{}", err.to_string());
-            err_result_msg(err.to_string())
+            Ok(BaseResponse::<String>::err_result_msg(err.to_string()))
         }
-    };
+    }
 
-    return Ok(web::HttpResponse::Ok().json(&resp));
 }
 
 // 删除角色信息
@@ -119,7 +124,7 @@ pub async fn role_update(item: web::types::Json<RoleUpdateReq>) -> Result<impl w
 pub async fn role_delete(item: web::types::Json<RoleDeleteReq>) -> Result<impl web::Responder, web::Error> {
     info!("role_delete params: {:?}", &item);
 
-    let resp = match &mut RB.clone().get() {
+    match &mut RB.clone().get() {
         Ok(conn) => {
             let ids = item.ids.clone();
             //查询角色有没有被使用了,如果使用了就不能删除
@@ -127,23 +132,25 @@ pub async fn role_delete(item: web::types::Json<RoleDeleteReq>) -> Result<impl w
                 Ok(count) => {
                     if count != 0 {
                         error!("err:{}", "角色已被使用,不能删除".to_string());
-                        return Ok(web::HttpResponse::Ok().json(&err_result_msg("角色已被使用,不能删除".to_string())));
+                        return Ok(BaseResponse::<String>::err_result_msg("角色已被使用,不能删除".to_string()));
                     }
-                    handle_result(diesel::delete(sys_role.filter(id.eq_any(&item.ids))).execute(conn))
+                    let result = diesel::delete(sys_role.filter(id.eq_any(&item.ids))).execute(conn);
+                    match result {
+                        Ok(_u) => Ok(BaseResponse::<String>::ok_result()),
+                        Err(err) => Ok(BaseResponse::<String>::err_result_msg(err.to_string())),
+                    }
                 }
                 Err(err) => {
                     error!("err:{}", err.to_string());
-                    err_result_msg(err.to_string())
+                    Ok(BaseResponse::<String>::err_result_msg(err.to_string()))
                 }
             }
         }
         Err(err) => {
             error!("err:{}", err.to_string());
-            err_result_msg(err.to_string())
+            Ok(BaseResponse::<String>::err_result_msg(err.to_string()))
         }
-    };
-
-    Ok(web::HttpResponse::Ok().json(&resp))
+    }
 }
 
 // 查询角色关联的菜单
@@ -172,7 +179,7 @@ pub async fn query_role_menu(item: web::types::Json<QueryRoleMenuReq>) -> Result
                 }
                 Err(err) => {
                     error!("err:{}", err.to_string());
-                    return Ok(web::HttpResponse::Ok().json(&err_result_msg(err.to_string())));
+                    return Ok(BaseResponse::<String>::err_result_msg(err.to_string()));
                 }
             }
 
@@ -186,19 +193,19 @@ pub async fn query_role_menu(item: web::types::Json<QueryRoleMenuReq>) -> Result
                     }
                     Err(err) => {
                         error!("err:{}", err.to_string());
-                        return Ok(web::HttpResponse::Ok().json(&err_result_msg(err.to_string())));
+                        return Ok(BaseResponse::<String>::err_result_msg(err.to_string()));
                     }
                 }
             }
 
-            Ok(web::HttpResponse::Ok().json(&ok_result_data(QueryRoleMenuData {
+            Ok(BaseResponse::<QueryRoleMenuData>::ok_result_data(QueryRoleMenuData {
                 role_menus: role_menu_ids,
                 menu_list: menu_data_list,
-            })))
+            }))
         }
         Err(err) => {
             error!("err:{}", err.to_string());
-            Ok(web::HttpResponse::Ok().json(&err_result_msg(err.to_string())))
+            Ok(BaseResponse::<String>::err_result_msg(err.to_string()))
         }
     }
 }
@@ -210,7 +217,7 @@ pub async fn update_role_menu(item: web::types::Json<UpdateRoleMenuReq>) -> Resu
     let r_id = item.role_id.clone();
     let menu_ids = item.menu_ids.clone();
 
-    let resp = match &mut RB.clone().get() {
+    match &mut RB.clone().get() {
         Ok(conn) => {
             match diesel::delete(sys_role_menu.filter(role_id.eq(r_id))).execute(conn) {
                 Ok(_) => {
@@ -225,19 +232,21 @@ pub async fn update_role_menu(item: web::types::Json<UpdateRoleMenuReq>) -> Resu
                         })
                     }
 
-                    handle_result(diesel::insert_into(sys_role_menu::table()).values(&role_menu).execute(conn))
+                    let result = diesel::insert_into(sys_role_menu::table()).values(&role_menu).execute(conn);
+                    match result {
+                        Ok(_u) => Ok(BaseResponse::<String>::ok_result()),
+                        Err(err) => Ok(BaseResponse::<String>::err_result_msg(err.to_string())),
+                    }
                 }
                 Err(err) => {
                     error!("err:{}", err.to_string());
-                    err_result_msg(err.to_string())
+                    Ok(BaseResponse::<String>::err_result_msg(err.to_string()))
                 }
             }
         }
         Err(err) => {
             error!("err:{}", err.to_string());
-            err_result_msg(err.to_string())
+            Ok(BaseResponse::<String>::err_result_msg(err.to_string()))
         }
-    };
-
-    Ok(web::HttpResponse::Ok().json(&resp))
+    }
 }
