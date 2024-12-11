@@ -1,5 +1,4 @@
 use crate::common::result::{BaseResponse};
-use crate::common::result_page::ResponsePage;
 use crate::model::system::menu::SysMenu;
 use crate::model::system::role::SysRole;
 use crate::model::system::role_menu::{query_menu_by_role, SysRoleMenu};
@@ -12,39 +11,6 @@ use ntex::web::types::Json;
 use rbatis::plugin::page::PageRequest;
 use rbatis::rbdc::datetime::DateTime;
 
-// 查询角色列表
-#[web::post("/role_list")]
-pub async fn role_list(item: Json<RoleListReq>) -> Result<impl web::Responder, web::Error> {
-    info!("role_list params: {:?}", &item);
-
-    let role_name = item.role_name.clone().unwrap_or_default();
-    let status_id = item.status_id.clone().unwrap_or_default();
-
-    let page_req = &PageRequest::new(item.page_no.clone(), item.page_size.clone());
-    let result =
-        SysRole::select_page_by_name(&mut RB.clone(), page_req, &role_name, &status_id).await;
-
-    let mut role_list: Vec<RoleListData> = Vec::new();
-    match result {
-        Ok(page) => {
-            let total = page.total;
-
-            for role in page.records {
-                role_list.push(RoleListData {
-                    id: role.id.unwrap(),
-                    sort: role.sort,
-                    status_id: role.status_id,
-                    role_name: role.role_name,
-                    remark: role.remark.unwrap_or_default(),
-                    create_time: role.create_time.unwrap().0.to_string(),
-                    update_time: role.update_time.unwrap().0.to_string(),
-                })
-            }
-            Ok(ResponsePage::<Vec<RoleListData>>::ok_result_page(role_list, total))
-        }
-        Err(err) => Ok(ResponsePage::<Vec<RoleListData>>::err_result_page(role_list, err.to_string())),
-    }
-}
 
 // 添加角色信息
 #[web::post("/role_save")]
@@ -64,6 +30,28 @@ pub async fn role_save(item: Json<RoleSaveReq>) -> Result<impl web::Responder, w
     };
 
     let result = SysRole::insert(&mut RB.clone(), &sys_role).await;
+
+    match result {
+        Ok(_u) => Ok(BaseResponse::<String>::ok_result()),
+        Err(err) => Ok(BaseResponse::<String>::err_result_msg(err.to_string())),
+    }
+}
+
+// 删除角色信息
+#[web::post("/role_delete")]
+pub async fn role_delete(item: Json<RoleDeleteReq>) -> Result<impl web::Responder, web::Error> {
+    info!("role_delete params: {:?}", &item);
+
+    let ids = item.ids.clone();
+    let user_role_list = SysUserRole::select_in_column(&mut RB.clone(), "role_id", &ids)
+        .await
+        .unwrap_or_default();
+
+    if user_role_list.len() > 0 {
+        return Ok(BaseResponse::<String>::err_result_msg("角色已被使用,不能直接删除".to_string()));
+    }
+
+    let result = SysRole::delete_in_column(&mut RB.clone(), "id", &item.ids).await;
 
     match result {
         Ok(_u) => Ok(BaseResponse::<String>::ok_result()),
@@ -96,25 +84,38 @@ pub async fn role_update(item: Json<RoleUpdateReq>) -> Result<impl web::Responde
     }
 }
 
-// 删除角色信息
-#[web::post("/role_delete")]
-pub async fn role_delete(item: Json<RoleDeleteReq>) -> Result<impl web::Responder, web::Error> {
-    info!("role_delete params: {:?}", &item);
 
-    let ids = item.ids.clone();
-    let user_role_list = SysUserRole::select_in_column(&mut RB.clone(), "role_id", &ids)
-        .await
-        .unwrap_or_default();
+// 查询角色列表
+#[web::post("/role_list")]
+pub async fn role_list(item: Json<RoleListReq>) -> Result<impl web::Responder, web::Error> {
+    info!("role_list params: {:?}", &item);
 
-    if user_role_list.len() > 0 {
-        return Ok(BaseResponse::<String>::err_result_msg("角色已被使用,不能直接删除".to_string()));
-    }
+    let role_name = item.role_name.clone().unwrap_or_default();
+    let status_id = item.status_id.clone().unwrap_or_default();
 
-    let result = SysRole::delete_in_column(&mut RB.clone(), "id", &item.ids).await;
+    let page_req = &PageRequest::new(item.page_no.clone(), item.page_size.clone());
+    let result =
+        SysRole::select_page_by_name(&mut RB.clone(), page_req, &role_name, &status_id).await;
 
+    let mut role_list: Vec<RoleListData> = Vec::new();
     match result {
-        Ok(_u) => Ok(BaseResponse::<String>::ok_result()),
-        Err(err) => Ok(BaseResponse::<String>::err_result_msg(err.to_string())),
+        Ok(page) => {
+            let total = page.total;
+
+            for role in page.records {
+                role_list.push(RoleListData {
+                    id: role.id.unwrap(),
+                    sort: role.sort,
+                    status_id: role.status_id,
+                    role_name: role.role_name,
+                    remark: role.remark.unwrap_or_default(),
+                    create_time: role.create_time.unwrap().0.to_string(),
+                    update_time: role.update_time.unwrap().0.to_string(),
+                })
+            }
+            Ok(BaseResponse::<Vec<RoleListData>>::ok_result_page(role_list, total))
+        }
+        Err(err) => Ok(BaseResponse::<Vec<RoleListData>>::err_result_page(role_list, err.to_string())),
     }
 }
 

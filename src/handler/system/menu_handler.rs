@@ -1,5 +1,4 @@
 use crate::common::result::BaseResponse;
-use crate::common::result_page::ResponsePage;
 use crate::model::system::menu::SysMenu;
 use crate::vo::system::menu_vo::*;
 use crate::RB;
@@ -7,41 +6,6 @@ use log::info;
 use ntex::web;
 use ntex::web::types::Json;
 use rbatis::rbdc::datetime::DateTime;
-
-// 查询菜单
-#[web::post("/menu_list")]
-pub async fn menu_list(item: Json<MenuListReq>) -> Result<impl web::Responder, web::Error> {
-    info!("menu_list params: {:?}", &item);
-
-    // 菜单是树形结构不需要分页
-    let result = SysMenu::select_all(&mut RB.clone()).await;
-
-    let mut menu_list: Vec<MenuListData> = Vec::new();
-
-    match result {
-        Ok(sys_menu_list) => {
-            for menu in sys_menu_list {
-                menu_list.push(MenuListData {
-                    id: menu.id.unwrap(),
-                    sort: menu.sort,
-                    status_id: menu.status_id,
-                    parent_id: menu.parent_id,
-                    menu_name: menu.menu_name.clone(),
-                    label: menu.menu_name,
-                    menu_url: menu.menu_url.unwrap_or_default(),
-                    icon: menu.menu_icon.unwrap_or_default(),
-                    api_url: menu.api_url.unwrap_or_default(),
-                    remark: menu.remark.unwrap_or_default(),
-                    menu_type: menu.menu_type,
-                    create_time: menu.create_time.unwrap().0.to_string(),
-                    update_time: menu.update_time.unwrap().0.to_string(),
-                })
-            }
-            Ok(ResponsePage::ok_result(menu_list))
-        }
-        Err(err) => Ok(ResponsePage::err_result_page(menu_list, err.to_string())),
-    }
-}
 
 // 添加菜单
 #[web::post("/menu_save")]
@@ -65,6 +29,28 @@ pub async fn menu_save(item: Json<MenuSaveReq>) -> Result<impl web::Responder, w
     };
 
     let result = SysMenu::insert(&mut RB.clone(), &sys_menu).await;
+
+    match result {
+        Ok(_u) => Ok(BaseResponse::<String>::ok_result()),
+        Err(err) => Ok(BaseResponse::<String>::err_result_msg(err.to_string())),
+    }
+}
+
+// 删除菜单信息
+#[web::post("/menu_delete")]
+pub async fn menu_delete(item: Json<MenuDeleteReq>) -> Result<impl web::Responder, web::Error> {
+    info!("menu_delete params: {:?}", &item);
+
+    //有下级的时候 不能直接删除
+    let menus = SysMenu::select_by_column(&mut RB.clone(), "parent_id", &item.id)
+        .await
+        .unwrap_or_default();
+
+    if menus.len() > 0 {
+        return Ok(BaseResponse::<String>::err_result_msg("有下级菜单,不能直接删除".to_string()));
+    }
+
+    let result = SysMenu::delete_by_column(&mut RB.clone(), "id", &item.id).await;
 
     match result {
         Ok(_u) => Ok(BaseResponse::<String>::ok_result()),
@@ -101,24 +87,37 @@ pub async fn menu_update(item: Json<MenuUpdateReq>) -> Result<impl web::Responde
     }
 }
 
-// 删除菜单信息
-#[web::post("/menu_delete")]
-pub async fn menu_delete(item: Json<MenuDeleteReq>) -> Result<impl web::Responder, web::Error> {
-    info!("menu_delete params: {:?}", &item);
+// 查询菜单
+#[web::post("/menu_list")]
+pub async fn menu_list(item: Json<MenuListReq>) -> Result<impl web::Responder, web::Error> {
+    info!("menu_list params: {:?}", &item);
 
-    //有下级的时候 不能直接删除
-    let menus = SysMenu::select_by_column(&mut RB.clone(), "parent_id", &item.id)
-        .await
-        .unwrap_or_default();
+    // 菜单是树形结构不需要分页
+    let result = SysMenu::select_all(&mut RB.clone()).await;
 
-    if menus.len() > 0 {
-        return Ok(BaseResponse::<String>::err_result_msg("有下级菜单,不能直接删除".to_string()));
-    }
-
-    let result = SysMenu::delete_by_column(&mut RB.clone(), "id", &item.id).await;
+    let mut menu_list: Vec<MenuListData> = Vec::new();
 
     match result {
-        Ok(_u) => Ok(BaseResponse::<String>::ok_result()),
-        Err(err) => Ok(BaseResponse::<String>::err_result_msg(err.to_string())),
+        Ok(sys_menu_list) => {
+            for menu in sys_menu_list {
+                menu_list.push(MenuListData {
+                    id: menu.id.unwrap(),
+                    sort: menu.sort,
+                    status_id: menu.status_id,
+                    parent_id: menu.parent_id,
+                    menu_name: menu.menu_name.clone(),
+                    label: menu.menu_name,
+                    menu_url: menu.menu_url.unwrap_or_default(),
+                    icon: menu.menu_icon.unwrap_or_default(),
+                    api_url: menu.api_url.unwrap_or_default(),
+                    remark: menu.remark.unwrap_or_default(),
+                    menu_type: menu.menu_type,
+                    create_time: menu.create_time.unwrap().0.to_string(),
+                    update_time: menu.update_time.unwrap().0.to_string(),
+                })
+            }
+            Ok(BaseResponse::ok_result_page(menu_list, 0))
+        }
+        Err(err) => Ok(BaseResponse::err_result_page(menu_list, err.to_string())),
     }
 }
