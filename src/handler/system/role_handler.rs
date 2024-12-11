@@ -11,40 +11,6 @@ use crate::model::system::prelude::{SysMenu, SysRole, SysRoleMenu, SysUserRole};
 use crate::model::system::{sys_role, sys_role_menu, sys_user_role};
 use crate::vo::system::role_vo::*;
 
-// 查询角色列表
-#[web::post("/role_list")]
-pub async fn role_list(item: Json<RoleListReq>, data: State<AppState>) -> Result<impl Responder, Error> {
-    info!("role_list params: {:?}", &item);
-
-    let conn = &data.conn;
-
-    let paginator = SysRole::find()
-        .apply_if(item.role_name.clone(), |query, v| {
-            query.filter(sys_role::Column::RoleName.eq(v))
-        })
-        .apply_if(item.status_id.clone(), |query, v| {
-            query.filter(sys_role::Column::StatusId.eq(v))
-        }).paginate(conn, item.page_size.clone());
-
-    let total = paginator.num_items().await.unwrap_or_default();
-
-    let mut role_list: Vec<RoleListData> = Vec::new();
-
-    for role in paginator.fetch_page(item.page_no.clone() - 1).await.unwrap_or_default() {
-        role_list.push(RoleListData {
-            id: role.id,
-            sort: role.sort,
-            status_id: role.status_id,
-            role_name: role.role_name,
-            remark: role.remark,
-            create_time: role.create_time.to_string(),
-            update_time: role.update_time.to_string(),
-        })
-    }
-
-    Ok(BaseResponse::ok_result_page(role_list, total))
-}
-
 // 添加角色信息
 #[web::post("/role_save")]
 pub async fn role_save(item: Json<RoleSaveReq>, data: State<AppState>) -> Result<impl Responder, Error> {
@@ -63,6 +29,25 @@ pub async fn role_save(item: Json<RoleSaveReq>, data: State<AppState>) -> Result
     };
 
     let result = SysRole::insert(sys_role).exec(conn).await;
+    match result {
+        Ok(_u) => Ok(BaseResponse::<String>::ok_result()),
+        Err(err) => Ok(BaseResponse::<String>::err_result_msg(err.to_string())),
+    }
+}
+
+// 删除角色信息
+#[web::post("/role_delete")]
+pub async fn role_delete(item: Json<RoleDeleteReq>, data: State<AppState>) -> Result<impl Responder, Error> {
+    info!("role_delete params: {:?}", &item);
+    let conn = &data.conn;
+
+    let ids = item.ids.clone();
+
+    if SysUserRole::find().filter(sys_user_role::Column::RoleId.is_in(ids)).count(conn).await.unwrap_or_default() > 0 {
+        return Ok(BaseResponse::<String>::err_result_msg("角色已被使用,不能直接删除！".to_string()));
+    }
+
+    let result = SysRole::delete_many().filter(sys_role::Column::Id.is_in(item.ids.clone())).exec(conn).await;
     match result {
         Ok(_u) => Ok(BaseResponse::<String>::ok_result()),
         Err(err) => Ok(BaseResponse::<String>::err_result_msg(err.to_string())),
@@ -96,23 +81,38 @@ pub async fn role_update(item: Json<RoleUpdateReq>, data: State<AppState>) -> Re
     }
 }
 
-// 删除角色信息
-#[web::post("/role_delete")]
-pub async fn role_delete(item: Json<RoleDeleteReq>, data: State<AppState>) -> Result<impl Responder, Error> {
-    info!("role_delete params: {:?}", &item);
+// 查询角色列表
+#[web::post("/role_list")]
+pub async fn role_list(item: Json<RoleListReq>, data: State<AppState>) -> Result<impl Responder, Error> {
+    info!("role_list params: {:?}", &item);
+
     let conn = &data.conn;
 
-    let ids = item.ids.clone();
+    let paginator = SysRole::find()
+        .apply_if(item.role_name.clone(), |query, v| {
+            query.filter(sys_role::Column::RoleName.eq(v))
+        })
+        .apply_if(item.status_id.clone(), |query, v| {
+            query.filter(sys_role::Column::StatusId.eq(v))
+        }).paginate(conn, item.page_size.clone());
 
-    if SysUserRole::find().filter(sys_user_role::Column::RoleId.is_in(ids)).count(conn).await.unwrap_or_default() > 0 {
-        return Ok(BaseResponse::<String>::err_result_msg("角色已被使用,不能直接删除！".to_string()));
+    let total = paginator.num_items().await.unwrap_or_default();
+
+    let mut role_list: Vec<RoleListData> = Vec::new();
+
+    for role in paginator.fetch_page(item.page_no.clone() - 1).await.unwrap_or_default() {
+        role_list.push(RoleListData {
+            id: role.id,
+            sort: role.sort,
+            status_id: role.status_id,
+            role_name: role.role_name,
+            remark: role.remark,
+            create_time: role.create_time.to_string(),
+            update_time: role.update_time.to_string(),
+        })
     }
 
-    let result = SysRole::delete_many().filter(sys_role::Column::Id.is_in(item.ids.clone())).exec(conn).await;
-    match result {
-        Ok(_u) => Ok(BaseResponse::<String>::ok_result()),
-        Err(err) => Ok(BaseResponse::<String>::err_result_msg(err.to_string())),
-    }
+    Ok(BaseResponse::ok_result_page(role_list, total))
 }
 
 // 查询角色关联的菜单
