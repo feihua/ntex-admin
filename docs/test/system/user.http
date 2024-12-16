@@ -31,11 +31,9 @@ Content-Type: application/json
 Authorization: Bearer {{token}}
 
 {
-  "mobile": "18613030361",
-  "user_name": "tes1t",
-  "remark": "test1",
-  "status_id": 1,
-  "sort": 1
+  "mobile": "18613030351",
+  "user_name": "test",
+  "remark": "test"
 }
 ###删除用户 user_delete
 POST {{host}}/api/user_delete
@@ -43,9 +41,7 @@ Content-Type: application/json
 Authorization: Bearer {{token}}
 
 {
-  "ids": [
-    1
-  ]
+  "ids": [13]
 }
 ###更新用户 user_update
 POST {{host}}/api/user_update
@@ -53,8 +49,8 @@ Content-Type: application/json
 Authorization: Bearer {{token}}
 
 {
-  "id": 2,
-  "mobile": "123",
+  "id": 17,
+  "mobile": "18613030351",
   "user_name": "test123",
   "remark": "test123",
   "sort": 1,
