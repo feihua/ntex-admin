@@ -1,11 +1,11 @@
+use crate::common::result::BaseResponse;
+use crate::utils::error::WhoUnfollowedError;
+use crate::utils::jwt_util::JWTToken;
 use log::info;
 use ntex::http::header;
 use ntex::service::{Middleware, Service, ServiceCtx};
 use ntex::web;
 use ntex::web::HttpResponse;
-use crate::common::result::BaseResponse;
-use crate::utils::error::WhoUnfollowedError;
-use crate::utils::jwt_util::JWTToken;
 
 // There are two steps in middleware processing.
 // 1. Middleware initialization, middleware factory gets called with
@@ -26,20 +26,30 @@ pub struct JwtAuthMiddleware<S> {
 }
 
 impl<S, Err> Service<web::WebRequest<Err>> for JwtAuthMiddleware<S>
-    where
-        S: Service<web::WebRequest<Err>, Response=web::WebResponse, Error=web::Error>,
-        Err: web::ErrorRenderer,
+where
+    S: Service<web::WebRequest<Err>, Response = web::WebResponse, Error = web::Error>,
+    Err: web::ErrorRenderer,
 {
     type Response = web::WebResponse;
     type Error = web::Error;
 
     ntex::forward_ready!(service);
 
-    async fn call(&self, req: web::WebRequest<Err>, ctx: ServiceCtx<'_, Self>) -> Result<Self::Response, Self::Error> {
+    async fn call(
+        &self,
+        req: web::WebRequest<Err>,
+        ctx: ServiceCtx<'_, Self>,
+    ) -> Result<Self::Response, Self::Error> {
         let path = req.path().to_string();
         info!("Hi from start. You requested path: {}", path);
         let header_value = header::HeaderValue::from_str("").unwrap();
-        let authorization = req.headers().get("Authorization").unwrap_or(&header_value).to_str().unwrap().to_string();
+        let authorization = req
+            .headers()
+            .get("Authorization")
+            .unwrap_or(&header_value)
+            .to_str()
+            .unwrap()
+            .to_string();
 
         if path.contains("login") {
             return Ok(ctx.clone().call(&self.service, req).await?);
@@ -58,8 +68,8 @@ impl<S, Err> Service<web::WebRequest<Err>> for JwtAuthMiddleware<S>
             Ok(j_token) => j_token,
             Result::Err(err) => {
                 let er = match err {
-                    WhoUnfollowedError::JwtTokenError(s) => { s }
-                    _ => "no math error".to_string()
+                    WhoUnfollowedError::JwtTokenError(s) => s,
+                    _ => "no math error".to_string(),
                 };
                 log::error!("You requested path: {}, token is err: {}", path, er);
                 let res: BaseResponse<String> = BaseResponse {
