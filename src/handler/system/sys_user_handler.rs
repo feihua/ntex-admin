@@ -1,75 +1,83 @@
-use diesel::associations::HasTable;
-use diesel::sql_types::Bigint;
-use diesel::{sql_query, ExpressionMethods, QueryDsl, RunQueryDsl};
-use log::{debug, error, info, warn};
-use ntex::http::header;
+use log::{info, warn};
 use ntex::web;
+use ntex::web::types::Json;
+use ntex::web::Responder;
 
 use crate::common::error::WhoUnfollowedError;
 use crate::common::result::BaseResponse;
-use crate::model::system::menu::{StringColumn, SysMenu};
-use crate::model::system::role::SysRole;
-use crate::model::system::user::{SysUser, SysUserAdd, SysUserUpdate};
-use crate::model::system::user_role::{SysUserRole, SysUserRoleAdd};
+use crate::model::system::sys_menu_model::{StringColumn, SysMenu};
+use crate::model::system::sys_role_model::SysRole;
+use crate::model::system::sys_user_model::*;
+use crate::model::system::sys_user_role_model::{AddSysUserRole, SysUserRole};
+use crate::schema::sys_menu::api_url;
 use crate::schema::sys_menu::dsl::sys_menu;
-use crate::schema::sys_menu::{api_url, sort};
 use crate::schema::sys_role::dsl::sys_role;
 use crate::schema::sys_user::dsl::sys_user;
-use crate::schema::sys_user::{id, mobile, password, status_id};
+use crate::schema::sys_user::*;
 use crate::schema::sys_user_role::dsl::sys_user_role;
 use crate::schema::sys_user_role::{role_id, user_id};
 use crate::utils::jwt_util::JWTToken;
-use crate::vo::system::user_vo::*;
 use crate::{schema, RB};
+use diesel::associations::HasTable;
+use diesel::sql_types::*;
+use diesel::{sql_query, ExpressionMethods, QueryDsl, RunQueryDsl};
+use log::{debug, error};
+use ntex::http::header;
 
-// 添加用户信息
-#[web::post("/user_save")]
-pub async fn user_save(
-    item: web::types::Json<UserSaveReq>,
-) -> Result<impl web::Responder, web::Error> {
-    info!("user_save params: {:?}", &item);
+use crate::vo::system::sys_user_vo::*;
 
-    let user = item.0;
+/*
+ *添加用户信息
+ *author：刘飞华
+ *date：2024/12/20 10:04:30
+ */
+#[web::post("/addUser")]
+pub async fn add_sys_user(item: Json<AddUserReq>) -> impl Responder {
+    info!("add sys_user params: {:?}", &item);
 
-    let s_user = SysUserAdd {
-        status_id: user.status_id,
-        sort: user.sort,
-        mobile: user.mobile,
-        user_name: user.user_name,
-        remark: user.remark,
-        password: "123456".to_string(), //默认密码为123456,暂时不加密
+    let req = item.0;
+
+    let add_sys_user_param = AddSysUser {
+        mobile: req.mobile,                   //手机
+        user_name: req.user_name,             //姓名
+        password: Some("123456".to_string()), //默认密码为123456,暂时不加密
+        status_id: req.status_id,             //状态(1:正常，0:禁用)
+        sort: req.sort,                       //排序
+        remark: req.remark,                   //备注
+        create_time: Default::default(),      //创建时间
+        update_time: Default::default(),      //修改时间
     };
 
     match &mut RB.clone().get() {
         Ok(conn) => {
-            let query = diesel::insert_into(sys_user::table()).values(s_user);
-            debug!(
-                "SQL:{}",
-                diesel::debug_query::<diesel::mysql::Mysql, _>(&query).to_string()
-            );
-            let result = query.execute(conn);
+            let result = diesel::insert_into(sys_user::table())
+                .values(add_sys_user_param)
+                .execute(conn);
             match result {
-                Ok(_u) => Ok(BaseResponse::<String>::ok_result()),
-                Err(err) => Ok(BaseResponse::<String>::err_result_msg(err.to_string())),
+                Ok(_u) => BaseResponse::<String>::ok_result(),
+                Err(err) => BaseResponse::<String>::err_result_msg(err.to_string()),
             }
         }
         Err(err) => {
             error!("err:{}", err.to_string());
-            Ok(BaseResponse::<String>::err_result_msg(err.to_string()))
+            BaseResponse::<String>::err_result_msg(err.to_string())
         }
     }
 }
 
-// 删除用户信息
-#[web::post("/user_delete")]
-pub async fn user_delete(
-    item: web::types::Json<UserDeleteReq>,
-) -> Result<impl web::Responder, web::Error> {
-    info!("user_delete params: {:?}", &item);
+/*
+ *删除用户信息
+ *author：刘飞华
+ *date：2024/12/20 10:04:30
+ */
+#[web::post("/deleteUser")]
+pub async fn delete_sys_user(item: Json<DeleteUserReq>) -> impl Responder {
+    info!("delete sys_user params: {:?}", &item);
+    let req = item.0;
 
     match &mut RB.clone().get() {
         Ok(conn) => {
-            let ids = item.ids.clone();
+            let ids = req.ids.clone();
             //id为1的用户为系统预留用户,不能删除
             let mut delete_ids = vec![];
             for delete_id in ids {
@@ -81,7 +89,7 @@ pub async fn user_delete(
             }
 
             if delete_ids.len() == 0 {
-                return Ok(BaseResponse::<String>::ok_result());
+                return BaseResponse::<String>::ok_result();
             }
 
             let query = diesel::delete(sys_user.filter(id.eq_any(delete_ids)));
@@ -91,74 +99,110 @@ pub async fn user_delete(
             );
             let result = query.execute(conn);
             match result {
-                Ok(_u) => Ok(BaseResponse::<String>::ok_result()),
-                Err(err) => Ok(BaseResponse::<String>::err_result_msg(err.to_string())),
+                Ok(_u) => BaseResponse::<String>::ok_result(),
+                Err(err) => BaseResponse::<String>::err_result_msg(err.to_string()),
             }
         }
         Err(err) => {
             error!("err:{}", err.to_string());
-            Ok(BaseResponse::<String>::err_result_msg(err.to_string()))
+            BaseResponse::<String>::err_result_msg(err.to_string())
         }
     }
 }
-// 更新用户信息
-#[web::post("/user_update")]
-pub async fn user_update(
-    item: web::types::Json<UserUpdateReq>,
-) -> Result<impl web::Responder, web::Error> {
-    info!("user_update params: {:?}", &item);
 
-    let user = item.0;
+/*
+ *更新用户信息
+ *author：刘飞华
+ *date：2024/12/20 10:04:30
+ */
+#[web::post("/updateUser")]
+pub async fn update_sys_user(item: Json<UpdateUserReq>) -> impl Responder {
+    info!("update sys_user params: {:?}", &item);
+
+    let req = item.0;
 
     match &mut RB.clone().get() {
         Ok(conn) => {
             let user_sql = sql_query("SELECT * FROM sys_user where id = ? ");
 
             match user_sql
-                .bind::<Bigint, _>(user.id)
+                .bind::<Bigint, _>(req.id)
                 .get_result::<SysUser>(conn)
             {
                 Ok(s_user) => {
-                    let s_user = SysUserUpdate {
-                        id: user.id.clone(),
-                        status_id: user.status_id,
-                        sort: user.sort,
-                        mobile: user.mobile,
-                        user_name: user.user_name,
-                        remark: user.remark,
-                        password: s_user.password.clone(),
+                    let update_sys_user_param = UpdateSysUser {
+                        id: req.id,                      //主键
+                        mobile: req.mobile,              //手机
+                        user_name: req.user_name,        //姓名
+                        status_id: req.status_id,        //状态(1:正常，0:禁用)
+                        sort: req.sort,                  //排序
+                        remark: req.remark,              //备注, //创建时间
+                        create_time: s_user.create_time, //修改时间
+                        update_time: Default::default(),
                     };
 
-                    let query = diesel::update(sys_user.filter(id.eq(user.id.clone()))).set(s_user);
-                    debug!(
-                        "SQL:{}",
-                        diesel::debug_query::<diesel::mysql::Mysql, _>(&query).to_string()
-                    );
-                    let result = query.execute(conn);
-                    match result {
-                        Ok(_u) => Ok(BaseResponse::<String>::ok_result()),
-                        Err(err) => Ok(BaseResponse::<String>::err_result_msg(err.to_string())),
+                    match &mut RB.clone().get() {
+                        Ok(conn) => {
+                            let result = diesel::update(sys_user)
+                                .filter(id.eq(&req.id))
+                                .set(update_sys_user_param)
+                                .execute(conn);
+                            match result {
+                                Ok(_u) => BaseResponse::<String>::ok_result(),
+                                Err(err) => BaseResponse::<String>::err_result_msg(err.to_string()),
+                            }
+                        }
+                        Err(err) => {
+                            error!("err:{}", err.to_string());
+                            BaseResponse::<String>::err_result_msg(err.to_string())
+                        }
                     }
                 }
                 Err(err) => {
                     error!("err:{}", err.to_string());
-                    Ok(BaseResponse::<String>::err_result_msg(err.to_string()))
+                    BaseResponse::<String>::err_result_msg(err.to_string())
                 }
             }
         }
         Err(err) => {
             error!("err:{}", err.to_string());
-            Ok(BaseResponse::<String>::err_result_msg(err.to_string()))
+            BaseResponse::<String>::err_result_msg(err.to_string())
+        }
+    }
+}
+
+/*
+ *更新用户信息状态
+ *author：刘飞华
+ *date：2024/12/20 10:04:30
+ */
+#[web::post("/updateUserStatus")]
+pub async fn update_sys_user_status(item: Json<UpdateUserStatusReq>) -> impl Responder {
+    info!("update sys_user_status params: {:?}", &item);
+    let req = item.0;
+
+    match &mut RB.clone().get() {
+        Ok(conn) => {
+            let result = diesel::update(sys_user)
+                .filter(id.eq_any(&req.ids))
+                .set(status_id.eq(req.status))
+                .execute(conn);
+            match result {
+                Ok(_u) => BaseResponse::<String>::ok_result(),
+                Err(err) => BaseResponse::<String>::err_result_msg(err.to_string()),
+            }
+        }
+        Err(err) => {
+            error!("err:{}", err.to_string());
+            BaseResponse::<String>::err_result_msg(err.to_string())
         }
     }
 }
 
 // 更新用户密码
 #[web::post("/update_user_password")]
-pub async fn update_user_password(
-    item: web::types::Json<UpdateUserPwdReq>,
-) -> Result<impl web::Responder, web::Error> {
-    info!("update_user_pwd params: {:?}", &item);
+pub async fn update_user_password(item: Json<UpdateUserPwdReq>) -> impl Responder {
+    info!("update user_pwd params: {:?}", &item);
 
     let user_pwd = item.0;
 
@@ -172,44 +216,99 @@ pub async fn update_user_password(
                 Ok(user) => {
                     if user.password != user_pwd.pwd {
                         error!("err:{}", "旧密码不正确".to_string());
-                        return Ok(BaseResponse::<String>::err_result_msg(
-                            "旧密码不正确".to_string(),
-                        ));
+                        return BaseResponse::<String>::err_result_msg("旧密码不正确".to_string());
                     }
                     let result = diesel::update(sys_user.filter(id.eq(user_pwd.id.clone())))
                         .set(password.eq(&user_pwd.re_pwd))
                         .execute(conn);
                     match result {
-                        Ok(_u) => Ok(BaseResponse::<String>::ok_result()),
-                        Err(err) => Ok(BaseResponse::<String>::err_result_msg(err.to_string())),
+                        Ok(_u) => BaseResponse::<String>::ok_result(),
+                        Err(err) => BaseResponse::<String>::err_result_msg(err.to_string()),
                     }
                 }
                 Err(err) => {
                     error!("err:{}", err.to_string());
-                    Ok(BaseResponse::<String>::err_result_msg(err.to_string()))
+                    BaseResponse::<String>::err_result_msg(err.to_string())
                 }
             }
         }
         Err(err) => {
             error!("err:{}", err.to_string());
-            Ok(BaseResponse::<String>::err_result_msg(err.to_string()))
+            BaseResponse::<String>::err_result_msg(err.to_string())
         }
     }
 }
 
-// 查询用户列表
-#[web::post("/user_list")]
-pub async fn user_list(
-    item: web::types::Json<UserListReq>,
-) -> Result<impl web::Responder, web::Error> {
-    info!("query user_list params: {:?}", &item);
+/*
+ *查询用户信息详情
+ *author：刘飞华
+ *date：2024/12/20 10:04:30
+ */
+#[web::post("/queryUserDetail")]
+pub async fn query_sys_user_detail(item: Json<QueryUserDetailReq>) -> impl Responder {
+    info!("query sys_user_detail params: {:?}", &item);
+    let req = item.0;
+
+    match &mut RB.clone().get() {
+        Ok(conn) => {
+            let sys_user_sql = sql_query("SELECT * FROM sys_user WHERE id = ?");
+            let result = sys_user_sql
+                .bind::<Bigint, _>(&req.id)
+                .get_result::<SysUser>(conn);
+            match result {
+                Ok(x) => {
+                    let data = QueryUserDetailResp {
+                        id: x.id,                               //主键
+                        mobile: x.mobile,                       //手机
+                        user_name: x.user_name,                 //姓名
+                        status_id: x.status_id,                 //状态(1:正常，0:禁用)
+                        sort: x.sort,                           //排序
+                        remark: x.remark.unwrap_or_default(),   //备注
+                        create_time: x.create_time.to_string(), //创建时间
+                        update_time: x.update_time.to_string(), //修改时间
+                    };
+
+                    BaseResponse::<QueryUserDetailResp>::ok_result_data(data)
+                }
+                Err(err) => {
+                    error!("err:{}", err.to_string());
+                    BaseResponse::<QueryUserDetailResp>::err_result_data(
+                        QueryUserDetailResp::new(),
+                        err.to_string(),
+                    )
+                }
+            }
+        }
+
+        Err(err) => {
+            error!("err:{}", err.to_string());
+            BaseResponse::<QueryUserDetailResp>::err_result_data(
+                QueryUserDetailResp::new(),
+                err.to_string(),
+            )
+        }
+    }
+}
+
+/*
+ *查询用户信息列表
+ *author：刘飞华
+ *date：2024/12/20 10:04:30
+ */
+#[web::post("/queryUserList")]
+pub async fn query_sys_user_list(item: Json<QueryUserListReq>) -> impl Responder {
+    info!("query sys_user_list params: {:?}", &item);
 
     let mut query = sys_user::table().into_boxed();
+
     if let Some(i) = &item.status_id {
         query = query.filter(status_id.eq(i));
     }
     if let Some(i) = &item.mobile {
         query = query.filter(mobile.eq(i));
+    }
+    if let Some(i) = &item.user_name {
+        query = query.filter(user_name.eq(i));
     }
 
     debug!(
@@ -219,34 +318,38 @@ pub async fn user_list(
 
     match &mut RB.clone().get() {
         Ok(conn) => {
-            let mut list_data: Vec<UserListData> = Vec::new();
-            if let Ok(sys_user_list) = query.load::<SysUser>(conn) {
-                for user in sys_user_list {
-                    list_data.push(UserListData {
-                        id: user.id,
-                        sort: user.sort,
-                        status_id: user.status_id,
-                        mobile: user.mobile,
-                        user_name: user.user_name,
-                        remark: user.remark.unwrap_or_default(),
-                        create_time: user.create_time.to_string(),
-                        update_time: user.update_time.to_string(),
+            let mut sys_user_list_data: Vec<UserListDataResp> = Vec::new();
+            if let Ok(list) = query.load::<SysUser>(conn) {
+                for x in list {
+                    sys_user_list_data.push(UserListDataResp {
+                        id: x.id,                               //主键
+                        mobile: x.mobile,                       //手机
+                        user_name: x.user_name,                 //姓名
+                        status_id: x.status_id,                 //状态(1:正常，0:禁用)
+                        sort: x.sort,                           //排序
+                        remark: x.remark.unwrap_or_default(),   //备注
+                        create_time: x.create_time.to_string(), //创建时间
+                        update_time: x.update_time.to_string(), //修改时间
                     })
                 }
             }
-            Ok(BaseResponse::ok_result_page(list_data, 110))
+            let total = 0;
+            BaseResponse::<Vec<UserListDataResp>>::ok_result_page(sys_user_list_data, total)
         }
         Err(err) => {
             error!("err:{}", err.to_string());
-            Ok(BaseResponse::<String>::err_result_msg(err.to_string()))
+            BaseResponse::err_result_page(UserListDataResp::new(), err.to_string())
         }
     }
 }
-// 后台用户登录
+
+/*
+ *后台用户登录
+ *author：刘飞华
+ *date：2024/12/20 10:04:30
+ */
 #[web::post("/login")]
-pub async fn login(
-    item: web::types::Json<UserLoginReq>,
-) -> Result<impl web::Responder, web::Error> {
+pub async fn login(item: Json<UserLoginReq>) -> impl Responder {
     info!("user login params: {:?}", item);
 
     match &mut RB.clone().get() {
@@ -261,21 +364,19 @@ pub async fn login(
                 info!("select_by_mobile: {:?}", user);
 
                 if user.password.ne(&item.password) {
-                    return Ok(BaseResponse::<String>::err_result_msg(
-                        "密码不正确".to_string(),
-                    ));
+                    return BaseResponse::<String>::err_result_msg("密码不正确".to_string());
                 }
 
                 let btn_menu = query_btn_menu(user.id);
 
                 if btn_menu.len() == 0 {
-                    return Ok(BaseResponse::<String>::err_result_msg(
+                    return BaseResponse::<String>::err_result_msg(
                         "用户没有分配角色或者菜单,不能登录".to_string(),
-                    ));
+                    );
                 }
 
                 match JWTToken::new(user.id, &user.user_name, btn_menu).create_token("123") {
-                    Ok(token) => Ok(BaseResponse::ok_result_data(token)),
+                    Ok(token) => BaseResponse::ok_result_data(token),
                     Err(err) => {
                         let er = match err {
                             WhoUnfollowedError::JwtTokenError(s) => s,
@@ -283,23 +384,26 @@ pub async fn login(
                         };
 
                         error!("err:{}", er.to_string());
-                        Ok(BaseResponse::<String>::err_result_msg(er))
+                        BaseResponse::<String>::err_result_msg(er)
                     }
                 }
             } else {
                 error!("err:{}", "根据手机号查询用户异常".to_string());
-                Ok(BaseResponse::<String>::err_result_msg(
-                    "根据手机号查询用户异常".to_string(),
-                ))
+                BaseResponse::<String>::err_result_msg("根据手机号查询用户异常".to_string())
             }
         }
         Err(err) => {
             error!("err:{}", err.to_string());
-            Ok(BaseResponse::<String>::err_result_msg(err.to_string()))
+            BaseResponse::<String>::err_result_msg(err.to_string())
         }
     }
 }
 
+/*
+ *查询按钮权限
+ *author：刘飞华
+ *date：2024/12/20 10:04:30
+ */
 fn query_btn_menu(u_id: i64) -> Vec<String> {
     match &mut RB.clone().get() {
         Ok(conn) => {
@@ -335,7 +439,7 @@ fn query_btn_menu(u_id: i64) -> Vec<String> {
                                     btn_list_data.push(x.api_url);
                                 }
                             }
-                            return btn_list_data;
+                            btn_list_data
                         }
                         Err(_) => Vec::new(),
                     }
@@ -349,10 +453,13 @@ fn query_btn_menu(u_id: i64) -> Vec<String> {
     }
 }
 
+/*
+ *查询用户的角色
+ *author：刘飞华
+ *date：2024/12/20 10:04:30
+ */
 #[web::post("/query_user_role")]
-pub async fn query_user_role(
-    item: web::types::Json<QueryUserRoleReq>,
-) -> Result<impl web::Responder, web::Error> {
+pub async fn query_user_role(item: Json<QueryUserRoleReq>) -> impl Responder {
     info!("query_user_role params: {:?}", item);
 
     match &mut RB.clone().get() {
@@ -368,11 +475,11 @@ pub async fn query_user_role(
             }
 
             let sys_role_result = sys_role.load::<SysRole>(conn);
-            let mut sys_role_list: Vec<UserRoleList> = Vec::new();
+            let mut sys_role_list: Vec<RoleList> = Vec::new();
 
             if let Ok(role_list) = sys_role_result {
                 for x in role_list {
-                    sys_role_list.push(UserRoleList {
+                    sys_role_list.push(RoleList {
                         id: x.id,
                         status_id: x.status_id,
                         sort: x.sort,
@@ -384,68 +491,73 @@ pub async fn query_user_role(
                 }
             }
 
-            Ok(BaseResponse::ok_result_data(QueryUserRoleData {
-                sys_role_list,
-                user_role_ids,
-            }))
+            BaseResponse::ok_result_data(QueryUserRoleResp {
+                role_list: sys_role_list,
+                role_ids: user_role_ids,
+            })
         }
         Err(err) => {
             error!("err:{}", err.to_string());
-            Ok(BaseResponse::<String>::err_result_msg(err.to_string()))
+            BaseResponse::<String>::err_result_msg(err.to_string())
         }
     }
 }
 
+/*
+ *更新用户角色
+ *author：刘飞华
+ *date：2024/12/20 10:04:30
+ */
 #[web::post("/update_user_role")]
-pub async fn update_user_role(
-    item: web::types::Json<UpdateUserRoleReq>,
-) -> Result<impl web::Responder, web::Error> {
-    info!("update_user_role params: {:?}", item);
+pub async fn update_user_role(item: Json<UpdateUserRoleReq>) -> impl Responder {
+    info!("update user_role params: {:?}", item);
 
     let user_role = item.0;
     let u_id = user_role.user_id;
     let role_ids = user_role.role_ids;
 
     if u_id == 1 {
-        return Ok(BaseResponse::<String>::err_result_msg(
-            "不能修改超级管理员的角色".to_string(),
-        ));
+        return BaseResponse::<String>::err_result_msg("不能修改超级管理员的角色".to_string());
     }
 
     match &mut RB.clone().get() {
         Ok(conn) => match diesel::delete(sys_user_role.filter(user_id.eq(u_id))).execute(conn) {
             Ok(_) => {
-                let mut sys_role_user_list: Vec<SysUserRoleAdd> = Vec::new();
+                let mut sys_role_user_list: Vec<AddSysUserRole> = Vec::new();
                 for r_id in role_ids {
-                    sys_role_user_list.push(SysUserRoleAdd {
-                        status_id: 1,
-                        sort: 1,
+                    sys_role_user_list.push(AddSysUserRole {
                         role_id: r_id,
                         user_id: u_id.clone(),
+                        create_time: Default::default(),
                     })
                 }
                 let result = diesel::insert_into(sys_user_role::table())
                     .values(&sys_role_user_list)
                     .execute(conn);
                 match result {
-                    Ok(_u) => Ok(BaseResponse::<String>::ok_result()),
-                    Err(err) => Ok(BaseResponse::<String>::err_result_msg(err.to_string())),
+                    Ok(_u) => BaseResponse::<String>::ok_result(),
+                    Err(err) => BaseResponse::<String>::err_result_msg(err.to_string()),
                 }
             }
             Err(err) => {
                 error!("err:{}", err.to_string());
-                Ok(BaseResponse::<String>::err_result_msg(err.to_string()))
+                BaseResponse::<String>::err_result_msg(err.to_string())
             }
         },
         Err(err) => {
             error!("err:{}", err.to_string());
-            Ok(BaseResponse::<String>::err_result_msg(err.to_string()))
+            BaseResponse::<String>::err_result_msg(err.to_string())
         }
     }
 }
 
+/*
+ *查询用户菜单
+ *author：刘飞华
+ *date：2024/12/20 10:04:30
+ */
 #[web::get("/query_user_menu")]
-pub async fn query_user_menu(req: web::HttpRequest) -> Result<impl web::Responder, web::Error> {
+pub async fn query_user_menu(req: web::HttpRequest) -> impl Responder {
     let def = header::HeaderValue::from_str("").unwrap();
     let token = req
         .headers()
@@ -458,20 +570,16 @@ pub async fn query_user_menu(req: web::HttpRequest) -> Result<impl web::Responde
     let split_vec = token.split_whitespace().collect::<Vec<_>>();
     if split_vec.len() != 2 || split_vec[0] != "Bearer" {
         error!("the token format wrong");
-        return Ok(BaseResponse::<String>::err_result_msg(
-            "the token format wrong".to_string(),
-        ));
+        return BaseResponse::<String>::err_result_msg("the token format wrong".to_string());
     }
     let jwt_token = match JWTToken::verify("123", split_vec[1]) {
         Ok(data) => data,
         Err(err) => {
             return match err {
                 WhoUnfollowedError::JwtTokenError(er) => {
-                    Ok(BaseResponse::<String>::err_result_msg(er.to_string()))
+                    BaseResponse::<String>::err_result_msg(er.to_string())
                 }
-                _ => Ok(BaseResponse::<String>::err_result_msg(
-                    "other err".to_string(),
-                )),
+                _ => BaseResponse::<String>::err_result_msg("other err".to_string()),
             };
         }
     };
@@ -496,7 +604,7 @@ pub async fn query_user_menu(req: web::HttpRequest) -> Result<impl web::Responde
                                 }
                                 Err(err) => {
                                     error!("err:{}", err.to_string());
-                                    return Ok(BaseResponse::<String>::err_result_msg(err.to_string()));
+                                    return BaseResponse::<String>::err_result_msg(err.to_string());
                                 }
                             }
                         }
@@ -509,13 +617,13 @@ pub async fn query_user_menu(req: web::HttpRequest) -> Result<impl web::Responde
                                 }
                                 Err(err) => {
                                     error!("err:{}", err.to_string());
-                                    return Ok(BaseResponse::<String>::err_result_msg(err.to_string()));
+                                    return BaseResponse::<String>::err_result_msg(err.to_string());
                                 }
                             }
                         }
                     }
 
-                    let mut sys_user_menu_list: Vec<MenuUserList> = Vec::new();
+                    let mut sys_user_menu_list: Vec<MenuList> = Vec::new();
                     let mut btn_menu: Vec<String> = Vec::new();
                     let mut sys_menu_ids: Vec<i64> = Vec::new();
 
@@ -533,17 +641,17 @@ pub async fn query_user_menu(req: web::HttpRequest) -> Result<impl web::Responde
                     match sys_menu
                         .filter(schema::sys_menu::id.eq_any(sys_menu_ids))
                         .filter(schema::sys_menu::status_id.eq(1))
-                        .order(sort.asc())
+                        .order(crate::schema::sys_menu::sort.asc())
                         .distinct()
                         .load::<SysMenu>(conn)
                     {
                         Ok(menu_list) => {
                             for x in menu_list {
-                                sys_user_menu_list.push(MenuUserList {
+                                sys_user_menu_list.push(MenuList {
                                     id: x.id,
                                     parent_id: x.parent_id,
                                     name: x.menu_name,
-                                    icon: x.menu_icon.unwrap_or_default(),
+                                    icon: x.menu_icon,
                                     api_url: x.api_url.clone(),
                                     menu_type: x.menu_type,
                                     path: x.menu_url,
@@ -552,27 +660,27 @@ pub async fn query_user_menu(req: web::HttpRequest) -> Result<impl web::Responde
                         }
                         Err(err) => {
                             error!("err:{}", err.to_string());
-                            return Ok(BaseResponse::<String>::err_result_msg(err.to_string()));
+                            return BaseResponse::<String>::err_result_msg(err.to_string());
                         }
                     }
 
-                    Ok(BaseResponse::ok_result_data(QueryUserMenuData {
+                    BaseResponse::ok_result_data(QueryUserMenuResp {
                         sys_menu: sys_user_menu_list,
                         btn_menu,
                         avatar: "https://gw.alipayobjects.com/zos/antfincdn/XAosXuNZyF/BiazfanxmamNRoxxVxka.png".to_string(),
                         name: user.user_name,
-                    }))
+                    })
                 }
 
                 Err(err) => {
                     error!("err:{}", err.to_string());
-                    Ok(BaseResponse::<String>::err_result_msg(err.to_string()))
+                    BaseResponse::<String>::err_result_msg(err.to_string())
                 }
             };
         }
         Err(err) => {
             error!("err:{}", err.to_string());
-            Ok(BaseResponse::<String>::err_result_msg(err.to_string()))
+            BaseResponse::<String>::err_result_msg(err.to_string())
         }
     }
 }

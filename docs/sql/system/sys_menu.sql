@@ -17,7 +17,6 @@ create table sys_menu
         unique (menu_name)
 ) comment '菜单信息';
 
-
 INSERT INTO sys_menu (id, menu_name, menu_type, status_id, sort, parent_id, menu_url, api_url, menu_icon, remark, create_time, update_time) VALUES (1, '首页', 1, 1, 0, 0, '/home', '', 'SmileOutlined', '首页', '2022-07-14 15:40:10', '2022-07-14 17:40:10');
 INSERT INTO sys_menu (id, menu_name, menu_type, status_id, sort, parent_id, menu_url, api_url, menu_icon, remark, create_time, update_time) VALUES (2, '权限管理', 1, 1, 1, 0, '', '', 'SettingOutlined', '权限管理', '2022-07-14 17:40:10', '2022-07-14 17:40:10');
 INSERT INTO sys_menu (id, menu_name, menu_type, status_id, sort, parent_id, menu_url, api_url, menu_icon, remark, create_time, update_time) VALUES (3, '用户管理', 2, 1, 3, 2, '/system/user', '/api/user_list', '', '用户管理', '2022-07-14 17:40:10', '2022-07-14 17:40:10');

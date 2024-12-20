@@ -51,9 +51,7 @@ Content-Type: application/json
 Authorization: Bearer {{token}}
 
 {
-  "ids": [
-    1
-  ]
+  "ids": [100]
 }
 ###更新角色 role_update
 POST {{host}}/api/role_update

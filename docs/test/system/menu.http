@@ -26,7 +26,7 @@ Authorization: Bearer {{token}}
   "api_url": "/auth/ping",
   "icon": "FrownOutlined",
   "label": "test4",
-  "menu_name": "test41",
+  "menu_name": "test4",
   "menu_type": 1,
   "menu_url": "test4",
   "parent_id": 0,
