@@ -82,7 +82,7 @@ Authorization: Bearer {{token}}
 }
 
 ###查询用户角色列表 queryUserRole
-GET {{host}}/api/system/user/queryUserRole
+POST {{host}}/api/system/user/queryUserRole
 Content-Type: application/json
 Authorization: Bearer {{token}}
 
