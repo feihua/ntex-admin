@@ -22,7 +22,7 @@ use crate::RB;
  *author：刘飞华
  *date：2024/12/16 14:19:49
  */
-#[web::post("/addUser")]
+#[web::post("/user/addUser")]
 pub async fn add_sys_user(item: Json<AddUserReq>) -> Result<impl web::Responder, web::Error> {
     info!("add sys_user params: {:?}", &item);
 
@@ -53,7 +53,7 @@ pub async fn add_sys_user(item: Json<AddUserReq>) -> Result<impl web::Responder,
  *author：刘飞华
  *date：2024/12/16 14:19:49
  */
-#[web::post("/deleteUser")]
+#[web::post("/user/deleteUser")]
 pub async fn delete_sys_user(item: Json<DeleteUserReq>) -> Result<impl web::Responder, web::Error> {
     info!("delete sys_user params: {:?}", &item);
 
@@ -76,7 +76,7 @@ pub async fn delete_sys_user(item: Json<DeleteUserReq>) -> Result<impl web::Resp
  *author：刘飞华
  *date：2024/12/16 14:19:49
  */
-#[web::post("/updateUser")]
+#[web::post("/user/updateUser")]
 pub async fn update_sys_user(item: Json<UpdateUserReq>) -> Result<impl web::Responder, web::Error> {
     info!("update sys_user params: {:?}", &item);
 
@@ -118,7 +118,7 @@ pub async fn update_sys_user(item: Json<UpdateUserReq>) -> Result<impl web::Resp
  *author：刘飞华
  *date：2024/12/16 14:19:49
  */
-#[web::post("/updateUserStatus")]
+#[web::post("/user/updateUserStatus")]
 pub async fn update_sys_user_status(
     item: Json<UpdateUserStatusReq>,
 ) -> Result<impl web::Responder, web::Error> {
@@ -127,10 +127,18 @@ pub async fn update_sys_user_status(
 
     let req = item.0;
 
-    let param = vec![to_value!(req.status), to_value!(req.ids)];
-    let result = rb
-        .exec("update sys_user set status = ? where id in ?", param)
-        .await;
+    let update_sql = format!(
+        "update sys_user set status_id = ? where id in ({})",
+        req.ids
+            .iter()
+            .map(|_| "?")
+            .collect::<Vec<&str>>()
+            .join(", ")
+    );
+
+    let mut param = vec![to_value!(req.status)];
+    param.extend(req.ids.iter().map(|&id| to_value!(id)));
+    let result = rb.exec(&update_sql, param).await;
 
     match result {
         Ok(_u) => Ok(BaseResponse::<String>::ok_result()),
@@ -143,11 +151,11 @@ pub async fn update_sys_user_status(
  *author：刘飞华
  *date：2024/12/16 14:19:49
  */
-#[web::post("/update_user_password")]
+#[web::post("/user/updateUserPassword")]
 pub async fn update_user_password(
     item: Json<UpdateUserPwdReq>,
 ) -> Result<impl web::Responder, web::Error> {
-    info!("update_user_pwd params: {:?}", &item);
+    info!("update user_pwd params: {:?}", &item);
 
     let user_pwd = item.0;
 
@@ -183,7 +191,7 @@ pub async fn update_user_password(
  *author：刘飞华
  *date：2024/12/16 14:19:49
  */
-#[web::post("/queryUserDetail")]
+#[web::post("/user/queryUserDetail")]
 pub async fn query_sys_user_detail(
     item: Json<QueryUserDetailReq>,
 ) -> Result<impl web::Responder, web::Error> {
@@ -219,16 +227,17 @@ pub async fn query_sys_user_detail(
  *author：刘飞华
  *date：2024/12/16 14:19:49
  */
-#[web::post("/queryUserList")]
+#[web::post("/user/queryUserList")]
 pub async fn query_sys_user_list(
     item: Json<QueryUserListReq>,
 ) -> Result<impl web::Responder, web::Error> {
     info!("query sys_user_list params: {:?}", &item);
 
     let mobile = item.mobile.as_deref().unwrap_or_default();
+    let user_name = item.user_name.as_deref().unwrap_or_default();
     let status_id = item.status_id.unwrap_or(2);
     let page = &PageRequest::new(item.page_no.clone(), item.page_size.clone());
-    let result = User::select_page_by_name(&mut RB.clone(), page, mobile, status_id).await;
+    let result = User::select_page_by_name(&mut RB.clone(), page, mobile, user_name, status_id).await;
 
     let mut sys_user_list_data: Vec<UserListDataResp> = Vec::new();
     match result {
@@ -264,7 +273,7 @@ pub async fn query_sys_user_list(
  *author：刘飞华
  *date：2024/12/16 14:19:49
  */
-#[web::post("/login")]
+#[web::post("/user/login")]
 pub async fn login(item: Json<UserLoginReq>) -> Result<impl web::Responder, web::Error> {
     info!("user login params: {:?}", item);
 
@@ -350,11 +359,11 @@ async fn query_btn_menu(id: &i64) -> Vec<String> {
  *author：刘飞华
  *date：2024/12/16 14:19:49
  */
-#[web::post("/query_user_role")]
+#[web::post("/user/queryUserRole")]
 pub async fn query_user_role(
     item: Json<QueryUserRoleReq>,
 ) -> Result<impl web::Responder, web::Error> {
-    info!("query_user_role params: {:?}", item);
+    info!("query user_role params: {:?}", item);
 
     let user_role = UserRole::select_by_column(&mut RB.clone(), "user_id", &item.user_id).await;
     let mut user_role_ids: Vec<i64> = Vec::new();
@@ -392,11 +401,11 @@ pub async fn query_user_role(
  *author：刘飞华
  *date：2024/12/16 14:19:49
  */
-#[web::post("/update_user_role")]
+#[web::post("/user/updateUserRole")]
 pub async fn update_user_role(
     item: Json<UpdateUserRoleReq>,
 ) -> Result<impl web::Responder, web::Error> {
-    info!("update_user_role params: {:?}", item);
+    info!("update user_role params: {:?}", item);
 
     let user_role = item.0;
     let user_id = user_role.user_id;
@@ -436,7 +445,7 @@ pub async fn update_user_role(
     }
 }
 
-#[web::get("/query_user_menu")]
+#[web::get("/user/queryUserMenu")]
 pub async fn query_user_menu(req: web::HttpRequest) -> Result<impl web::Responder, web::Error> {
     let def = header::HeaderValue::from_str("").unwrap();
     let token = req

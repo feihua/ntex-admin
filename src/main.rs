@@ -34,7 +34,7 @@ async fn main() -> std::io::Result<()> {
             .wrap(web::middleware::Logger::default())
             .wrap(middleware::auth::JwtAuth)
             .service(
-                (web::scope("/api"))
+                (web::scope("/api/system"))
                     .service(sys_user_handler::add_sys_user)
                     .service(sys_user_handler::delete_sys_user)
                     .service(sys_user_handler::update_sys_user)

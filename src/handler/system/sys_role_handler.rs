@@ -18,7 +18,7 @@ use crate::RB;
  *author：刘飞华
  *date：2024/12/16 14:19:49
  */
-#[web::post("/addRole")]
+#[web::post("/role/addRole")]
 pub async fn add_sys_role(item: Json<AddRoleReq>) -> Result<impl web::Responder, web::Error> {
     info!("add sys_role params: {:?}", &item);
 
@@ -47,7 +47,7 @@ pub async fn add_sys_role(item: Json<AddRoleReq>) -> Result<impl web::Responder,
  *author：刘飞华
  *date：2024/12/16 14:19:49
  */
-#[web::post("/deleteRole")]
+#[web::post("/role/deleteRole")]
 pub async fn delete_sys_role(item: Json<DeleteRoleReq>) -> Result<impl web::Responder, web::Error> {
     info!("delete sys_role params: {:?}", &item);
 
@@ -75,7 +75,7 @@ pub async fn delete_sys_role(item: Json<DeleteRoleReq>) -> Result<impl web::Resp
  *author：刘飞华
  *date：2024/12/16 14:19:49
  */
-#[web::post("/updateRole")]
+#[web::post("/role/updateRole")]
 pub async fn update_sys_role(item: Json<UpdateRoleReq>) -> Result<impl web::Responder, web::Error> {
     info!("update sys_role params: {:?}", &item);
 
@@ -104,7 +104,7 @@ pub async fn update_sys_role(item: Json<UpdateRoleReq>) -> Result<impl web::Resp
  *author：刘飞华
  *date：2024/12/16 14:19:49
  */
-#[web::post("/updateRoleStatus")]
+#[web::post("/role/updateRoleStatus")]
 pub async fn update_sys_role_status(
     item: Json<UpdateRoleStatusReq>,
 ) -> Result<impl web::Responder, web::Error> {
@@ -113,10 +113,18 @@ pub async fn update_sys_role_status(
 
     let req = item.0;
 
-    let param = vec![to_value!(req.status), to_value!(req.ids)];
-    let result = rb
-        .exec("update sys_role set status = ? where id in ?", param)
-        .await;
+    let update_sql = format!(
+        "update sys_role set status_id = ? where id in ({})",
+        req.ids
+            .iter()
+            .map(|_| "?")
+            .collect::<Vec<&str>>()
+            .join(", ")
+    );
+
+    let mut param = vec![to_value!(req.status)];
+    param.extend(req.ids.iter().map(|&id| to_value!(id)));
+    let result = rb.exec(&update_sql, param).await;
 
     match result {
         Ok(_u) => Ok(BaseResponse::<String>::ok_result()),
@@ -129,7 +137,7 @@ pub async fn update_sys_role_status(
  *author：刘飞华
  *date：2024/12/16 14:19:49
  */
-#[web::post("/queryRoleDetail")]
+#[web::post("/role/queryRoleDetail")]
 pub async fn query_sys_role_detail(
     item: Json<QueryRoleDetailReq>,
 ) -> Result<impl web::Responder, web::Error> {
@@ -164,7 +172,7 @@ pub async fn query_sys_role_detail(
  *author：刘飞华
  *date：2024/12/16 14:19:49
  */
-#[web::post("/queryRoleList")]
+#[web::post("/role/queryRoleList")]
 pub async fn query_sys_role_list(
     item: Json<QueryRoleListReq>,
 ) -> Result<impl web::Responder, web::Error> {
@@ -210,11 +218,11 @@ pub async fn query_sys_role_list(
  *author：刘飞华
  *date：2024/12/16 14:19:49
  */
-#[web::post("/query_role_menu")]
+#[web::post("/role/queryRoleMenu")]
 pub async fn query_role_menu(
     item: Json<QueryRoleMenuReq>,
 ) -> Result<impl web::Responder, web::Error> {
-    info!("query_role_menu params: {:?}", &item);
+    info!("query role_menu params: {:?}", &item);
 
     // 查询所有菜单
     let menu_list_all = Menu::select_all(&mut RB.clone()).await.unwrap_or_default();
@@ -261,11 +269,11 @@ pub async fn query_role_menu(
  *author：刘飞华
  *date：2024/12/16 14:19:49
  */
-#[web::post("/update_role_menu")]
+#[web::post("/role/updateRoleMenu")]
 pub async fn update_role_menu(
     item: Json<UpdateRoleMenuReq>,
 ) -> Result<impl web::Responder, web::Error> {
-    info!("update_role_menu params: {:?}", &item);
+    info!("update role_menu params: {:?}", &item);
     let role_id = item.role_id.clone();
 
     let role_menu_result = RoleMenu::delete_by_column(&mut RB.clone(), "role_id", &role_id).await;
