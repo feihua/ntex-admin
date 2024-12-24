@@ -25,7 +25,7 @@ pub async fn add_sys_menu(item: Json<AddMenuReq>) -> Result<impl web::Responder,
         menu_type: req.menu_type, //菜单类型(1：目录   2：菜单   3：按钮)
         status: req.status, //状态(1:正常，0:禁用)
         sort: req.sort,           //排序
-        parent_id: req.parent_id, //父ID
+        parent_id: req.parent_id.unwrap_or(2), //父ID
         menu_url: req.menu_url,   //路由路径
         api_url: req.api_url,     //接口URL
         menu_icon: req.menu_icon, //菜单图标

@@ -179,7 +179,7 @@ pub async fn query_sys_role_list(
     info!("query sys_role_list params: {:?}", &item);
 
     let role_name = item.role_name.clone().unwrap_or_default();
-    let status_id = item.status_id.clone().unwrap_or_default();
+    let status_id = item.status_id.clone().unwrap_or(2);
 
     let page = &PageRequest::new(item.page_no.clone(), item.page_size.clone());
     let result = Role::select_page_by_name(&mut RB.clone(), page, &role_name, status_id).await;
