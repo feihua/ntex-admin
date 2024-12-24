@@ -27,7 +27,7 @@ use crate::vo::system::sys_role_vo::*;
  *author：刘飞华
  *date：2024/12/20 10:04:30
  */
-#[web::post("/addRole")]
+#[web::post("/role/addRole")]
 pub async fn add_sys_role(item: Json<AddRoleReq>) -> impl Responder {
     info!("add sys_role params: {:?}", &item);
 
@@ -64,7 +64,7 @@ pub async fn add_sys_role(item: Json<AddRoleReq>) -> impl Responder {
  *author：刘飞华
  *date：2024/12/20 10:04:30
  */
-#[web::post("/deleteRole")]
+#[web::post("/role/deleteRole")]
 pub async fn delete_sys_role(item: Json<DeleteRoleReq>) -> impl Responder {
     info!("delete sys_role params: {:?}", &item);
     let req = item.0;
@@ -109,7 +109,7 @@ pub async fn delete_sys_role(item: Json<DeleteRoleReq>) -> impl Responder {
  *author：刘飞华
  *date：2024/12/20 10:04:30
  */
-#[web::post("/updateRole")]
+#[web::post("/role/updateRole")]
 pub async fn update_sys_role(item: Json<UpdateRoleReq>) -> impl Responder {
     info!("update sys_role params: {:?}", &item);
 
@@ -148,7 +148,7 @@ pub async fn update_sys_role(item: Json<UpdateRoleReq>) -> impl Responder {
  *author：刘飞华
  *date：2024/12/20 10:04:30
  */
-#[web::post("/updateRoleStatus")]
+#[web::post("/role/updateRoleStatus")]
 pub async fn update_sys_role_status(item: Json<UpdateRoleStatusReq>) -> impl Responder {
     info!("update sys_role_status params: {:?}", &item);
     let req = item.0;
@@ -176,7 +176,7 @@ pub async fn update_sys_role_status(item: Json<UpdateRoleStatusReq>) -> impl Res
  *author：刘飞华
  *date：2024/12/20 10:04:30
  */
-#[web::post("/queryRoleDetail")]
+#[web::post("/role/queryRoleDetail")]
 pub async fn query_sys_role_detail(item: Json<QueryRoleDetailReq>) -> impl Responder {
     info!("query sys_role_detail params: {:?}", &item);
     let req = item.0;
@@ -226,7 +226,7 @@ pub async fn query_sys_role_detail(item: Json<QueryRoleDetailReq>) -> impl Respo
  *author：刘飞华
  *date：2024/12/20 10:04:30
  */
-#[web::post("/queryRoleList")]
+#[web::post("/role/queryRoleList")]
 pub async fn query_sys_role_list(item: Json<QueryRoleListReq>) -> impl Responder {
     info!("query sys_role_list params: {:?}", &item);
 
@@ -274,7 +274,7 @@ pub async fn query_sys_role_list(item: Json<QueryRoleListReq>) -> impl Responder
  *author：刘飞华
  *date：2024/12/20 10:04:30
  */
-#[web::post("/query_role_menu")]
+#[web::post("/role/queryRoleMenu")]
 pub async fn query_role_menu(item: Json<QueryRoleMenuReq>) -> impl Responder {
     info!("query_role_menu params: {:?}", &item);
 
@@ -337,7 +337,7 @@ pub async fn query_role_menu(item: Json<QueryRoleMenuReq>) -> impl Responder {
  *author：刘飞华
  *date：2024/12/20 10:04:30
  */
-#[web::post("/update_role_menu")]
+#[web::post("/role/updateRoleMenu")]
 pub async fn update_role_menu(item: Json<UpdateRoleMenuReq>) -> impl Responder {
     info!("update_role_menu params: {:?}", &item);
     let r_id = item.role_id.clone();

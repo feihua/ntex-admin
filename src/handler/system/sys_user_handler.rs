@@ -31,7 +31,7 @@ use crate::vo::system::sys_user_vo::*;
  *author：刘飞华
  *date：2024/12/20 10:04:30
  */
-#[web::post("/addUser")]
+#[web::post("/user/addUser")]
 pub async fn add_sys_user(item: Json<AddUserReq>) -> impl Responder {
     info!("add sys_user params: {:?}", &item);
 
@@ -70,7 +70,7 @@ pub async fn add_sys_user(item: Json<AddUserReq>) -> impl Responder {
  *author：刘飞华
  *date：2024/12/20 10:04:30
  */
-#[web::post("/deleteUser")]
+#[web::post("/user/deleteUser")]
 pub async fn delete_sys_user(item: Json<DeleteUserReq>) -> impl Responder {
     info!("delete sys_user params: {:?}", &item);
     let req = item.0;
@@ -115,7 +115,7 @@ pub async fn delete_sys_user(item: Json<DeleteUserReq>) -> impl Responder {
  *author：刘飞华
  *date：2024/12/20 10:04:30
  */
-#[web::post("/updateUser")]
+#[web::post("/user/updateUser")]
 pub async fn update_sys_user(item: Json<UpdateUserReq>) -> impl Responder {
     info!("update sys_user params: {:?}", &item);
 
@@ -176,7 +176,7 @@ pub async fn update_sys_user(item: Json<UpdateUserReq>) -> impl Responder {
  *author：刘飞华
  *date：2024/12/20 10:04:30
  */
-#[web::post("/updateUserStatus")]
+#[web::post("/user/updateUserStatus")]
 pub async fn update_sys_user_status(item: Json<UpdateUserStatusReq>) -> impl Responder {
     info!("update sys_user_status params: {:?}", &item);
     let req = item.0;
@@ -200,7 +200,7 @@ pub async fn update_sys_user_status(item: Json<UpdateUserStatusReq>) -> impl Res
 }
 
 // 更新用户密码
-#[web::post("/update_user_password")]
+#[web::post("/user/update_user_password")]
 pub async fn update_user_password(item: Json<UpdateUserPwdReq>) -> impl Responder {
     info!("update user_pwd params: {:?}", &item);
 
@@ -244,7 +244,7 @@ pub async fn update_user_password(item: Json<UpdateUserPwdReq>) -> impl Responde
  *author：刘飞华
  *date：2024/12/20 10:04:30
  */
-#[web::post("/queryUserDetail")]
+#[web::post("/user/queryUserDetail")]
 pub async fn query_sys_user_detail(item: Json<QueryUserDetailReq>) -> impl Responder {
     info!("query sys_user_detail params: {:?}", &item);
     let req = item.0;
@@ -295,7 +295,7 @@ pub async fn query_sys_user_detail(item: Json<QueryUserDetailReq>) -> impl Respo
  *author：刘飞华
  *date：2024/12/20 10:04:30
  */
-#[web::post("/queryUserList")]
+#[web::post("/user/queryUserList")]
 pub async fn query_sys_user_list(item: Json<QueryUserListReq>) -> impl Responder {
     info!("query sys_user_list params: {:?}", &item);
 
@@ -348,7 +348,7 @@ pub async fn query_sys_user_list(item: Json<QueryUserListReq>) -> impl Responder
  *author：刘飞华
  *date：2024/12/20 10:04:30
  */
-#[web::post("/login")]
+#[web::post("/user/login")]
 pub async fn login(item: Json<UserLoginReq>) -> impl Responder {
     info!("user login params: {:?}", item);
 
@@ -458,7 +458,7 @@ fn query_btn_menu(u_id: i64) -> Vec<String> {
  *author：刘飞华
  *date：2024/12/20 10:04:30
  */
-#[web::post("/query_user_role")]
+#[web::post("/user/queryUserRole")]
 pub async fn query_user_role(item: Json<QueryUserRoleReq>) -> impl Responder {
     info!("query_user_role params: {:?}", item);
 
@@ -508,7 +508,7 @@ pub async fn query_user_role(item: Json<QueryUserRoleReq>) -> impl Responder {
  *author：刘飞华
  *date：2024/12/20 10:04:30
  */
-#[web::post("/update_user_role")]
+#[web::post("/user/updateUserRole")]
 pub async fn update_user_role(item: Json<UpdateUserRoleReq>) -> impl Responder {
     info!("update user_role params: {:?}", item);
 
@@ -556,7 +556,7 @@ pub async fn update_user_role(item: Json<UpdateUserRoleReq>) -> impl Responder {
  *author：刘飞华
  *date：2024/12/20 10:04:30
  */
-#[web::get("/query_user_menu")]
+#[web::get("/user/queryUserMenu")]
 pub async fn query_user_menu(req: web::HttpRequest) -> impl Responder {
     let def = header::HeaderValue::from_str("").unwrap();
     let token = req
@@ -640,7 +640,7 @@ pub async fn query_user_menu(req: web::HttpRequest) -> impl Responder {
 
                     match sys_menu
                         .filter(schema::sys_menu::id.eq_any(sys_menu_ids))
-                        .filter(schema::sys_menu::status_id.eq(1))
+                        .filter(schema::sys_menu::status.eq(1))
                         .order(crate::schema::sys_menu::sort.asc())
                         .distinct()
                         .load::<SysMenu>(conn)
