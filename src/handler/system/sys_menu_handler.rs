@@ -9,16 +9,14 @@ use crate::model::system::sys_menu;
 use crate::vo::system::sys_menu_vo::*;
 use sea_orm::prelude::Expr;
 use sea_orm::ActiveValue::Set;
-use sea_orm::{
-    ColumnTrait, EntityTrait, NotSet, PaginatorTrait, QueryFilter, QueryOrder
-};
+use sea_orm::{ColumnTrait, EntityTrait, NotSet, PaginatorTrait, QueryFilter, QueryOrder};
 
 /*
  *添加菜单信息
  *author：刘飞华
  *date：2024/12/19 09:54:39
  */
-#[web::post("/addMenu")]
+#[web::post("/menu/addMenu")]
 pub async fn add_sys_menu(
     item: Json<AddMenuReq>,
     data: State<AppState>,
@@ -32,7 +30,7 @@ pub async fn add_sys_menu(
         id: NotSet,                    //主键
         menu_name: Set(req.menu_name), //菜单名称
         menu_type: Set(req.menu_type), //菜单类型(1：目录   2：菜单   3：按钮)
-        status_id: Set(req.status_id), //状态(1:正常，0:禁用)
+        status: Set(req.status),       //状态(1:正常，0:禁用)
         sort: Set(req.sort),           //排序
         parent_id: Set(req.parent_id), //父ID
         menu_url: Set(req.menu_url),   //路由路径
@@ -55,7 +53,7 @@ pub async fn add_sys_menu(
  *author：刘飞华
  *date：2024/12/19 09:54:39
  */
-#[web::post("/deleteMenu")]
+#[web::post("/menu/deleteMenu")]
 pub async fn delete_sys_menu(
     item: Json<DeleteMenuReq>,
     data: State<AppState>,
@@ -103,7 +101,7 @@ pub async fn delete_sys_menu(
  *author：刘飞华
  *date：2024/12/19 09:54:39
  */
-#[web::post("/updateMenu")]
+#[web::post("/menu/updateMenu")]
 pub async fn update_sys_menu(
     item: Json<UpdateMenuReq>,
     data: State<AppState>,
@@ -129,7 +127,7 @@ pub async fn update_sys_menu(
         id: Set(req.id),               //主键
         menu_name: Set(req.menu_name), //菜单名称
         menu_type: Set(req.menu_type), //菜单类型(1：目录   2：菜单   3：按钮)
-        status_id: Set(req.status_id), //状态(1:正常，0:禁用)
+        status: Set(req.status),       //状态(1:正常，0:禁用)
         sort: Set(req.sort),           //排序
         parent_id: Set(req.parent_id), //父ID
         menu_url: Set(req.menu_url),   //路由路径
@@ -152,7 +150,7 @@ pub async fn update_sys_menu(
  *author：刘飞华
  *date：2024/12/19 09:54:39
  */
-#[web::post("/updateMenuStatus")]
+#[web::post("/menu/updateMenuStatus")]
 pub async fn update_sys_menu_status(
     item: Json<UpdateMenuStatusReq>,
     data: State<AppState>,
@@ -163,7 +161,7 @@ pub async fn update_sys_menu_status(
     let req = item.0;
 
     let result = SysMenu::update_many()
-        .col_expr(sys_menu::Column::StatusId, Expr::value(req.status))
+        .col_expr(sys_menu::Column::Status, Expr::value(req.status))
         .filter(sys_menu::Column::Id.is_in(req.ids))
         .exec(conn)
         .await;
@@ -179,7 +177,7 @@ pub async fn update_sys_menu_status(
  *author：刘飞华
  *date：2024/12/19 09:54:39
  */
-#[web::post("/queryMenuDetail")]
+#[web::post("/menu/queryMenuDetail")]
 pub async fn query_sys_menu_detail(
     item: Json<QueryMenuDetailReq>,
     data: State<AppState>,
@@ -197,7 +195,7 @@ pub async fn query_sys_menu_detail(
                 id: x.id,                                   //主键
                 menu_name: x.menu_name,                     //菜单名称
                 menu_type: x.menu_type,                     //菜单类型(1：目录   2：菜单   3：按钮)
-                status_id: x.status_id,                     //状态(1:正常，0:禁用)
+                status: x.status,                           //状态(1:正常，0:禁用)
                 sort: x.sort,                               //排序
                 parent_id: x.parent_id,                     //父ID
                 menu_url: x.menu_url.unwrap_or_default(),   //路由路径
@@ -208,7 +206,9 @@ pub async fn query_sys_menu_detail(
                 update_time: x.update_time.to_string(),     //修改时间
             };
 
-            Ok(BaseResponse::<QueryMenuDetailResp>::ok_result_data(sys_menu))
+            Ok(BaseResponse::<QueryMenuDetailResp>::ok_result_data(
+                sys_menu,
+            ))
         }
         Err(err) => Ok(BaseResponse::<QueryMenuDetailResp>::err_result_data(
             QueryMenuDetailResp::new(),
@@ -222,7 +222,7 @@ pub async fn query_sys_menu_detail(
  *author：刘飞华
  *date：2024/12/19 09:54:39
  */
-#[web::post("/queryMenuList")]
+#[web::post("/menu/queryMenuList")]
 pub async fn query_sys_menu_list(
     item: Json<QueryMenuListReq>,
     data: State<AppState>,
@@ -242,7 +242,7 @@ pub async fn query_sys_menu_list(
             id: x.id,                                   //主键
             menu_name: x.menu_name,                     //菜单名称
             menu_type: x.menu_type,                     //菜单类型(1：目录   2：菜单   3：按钮)
-            status_id: x.status_id,                     //状态(1:正常，0:禁用)
+            status: x.status,                           //状态(1:正常，0:禁用)
             sort: x.sort,                               //排序
             parent_id: x.parent_id,                     //父ID
             menu_url: x.menu_url.unwrap_or_default(),   //路由路径
@@ -254,5 +254,8 @@ pub async fn query_sys_menu_list(
         })
     }
 
-    Ok(BaseResponse::<Vec<MenuListDataResp>>::ok_result_page(sys_menu_list_data, 0))
+    Ok(BaseResponse::<Vec<MenuListDataResp>>::ok_result_page(
+        sys_menu_list_data,
+        0,
+    ))
 }

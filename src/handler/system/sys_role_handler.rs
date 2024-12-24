@@ -10,16 +10,14 @@ use crate::model::system::{sys_role, sys_role_menu, sys_user_role};
 use crate::vo::system::sys_role_vo::*;
 use sea_orm::prelude::Expr;
 use sea_orm::ActiveValue::Set;
-use sea_orm::{
-    ColumnTrait, EntityTrait, NotSet, PaginatorTrait, QueryFilter, QueryTrait,
-};
+use sea_orm::{ColumnTrait, EntityTrait, NotSet, PaginatorTrait, QueryFilter, QueryTrait};
 
 /*
  *添加角色信息
  *author：刘飞华
  *date：2024/12/19 09:54:39
  */
-#[web::post("/addRole")]
+#[web::post("/role/addRole")]
 pub async fn add_sys_role(
     item: Json<AddRoleReq>,
     data: State<AppState>,
@@ -51,7 +49,7 @@ pub async fn add_sys_role(
  *author：刘飞华
  *date：2024/12/19 09:54:39
  */
-#[web::post("/deleteRole")]
+#[web::post("/role/deleteRole")]
 pub async fn delete_sys_role(
     item: Json<DeleteRoleReq>,
     data: State<AppState>,
@@ -90,7 +88,7 @@ pub async fn delete_sys_role(
  *author：刘飞华
  *date：2024/12/19 09:54:39
  */
-#[web::post("/updateRole")]
+#[web::post("/role/updateRole")]
 pub async fn update_sys_role(
     item: Json<UpdateRoleReq>,
     data: State<AppState>,
@@ -134,7 +132,7 @@ pub async fn update_sys_role(
  *author：刘飞华
  *date：2024/12/19 09:54:39
  */
-#[web::post("/updateRoleStatus")]
+#[web::post("/role/updateRoleStatus")]
 pub async fn update_sys_role_status(
     item: Json<UpdateRoleStatusReq>,
     data: State<AppState>,
@@ -160,7 +158,7 @@ pub async fn update_sys_role_status(
  *author：刘飞华
  *date：2024/12/19 09:54:39
  */
-#[web::post("/queryRoleDetail")]
+#[web::post("/role/queryRoleDetail")]
 pub async fn query_sys_role_detail(
     item: Json<QueryRoleDetailReq>,
     data: State<AppState>,
@@ -184,7 +182,9 @@ pub async fn query_sys_role_detail(
                 update_time: x.update_time.to_string(), //修改时间
             };
 
-            Ok(BaseResponse::<QueryRoleDetailResp>::ok_result_data(sys_role))
+            Ok(BaseResponse::<QueryRoleDetailResp>::ok_result_data(
+                sys_role,
+            ))
         }
         Err(err) => Ok(BaseResponse::<QueryRoleDetailResp>::err_result_data(
             QueryRoleDetailResp::new(),
@@ -198,7 +198,7 @@ pub async fn query_sys_role_detail(
  *author：刘飞华
  *date：2024/12/19 09:54:39
  */
-#[web::post("/queryRoleList")]
+#[web::post("/role/queryRoleList")]
 pub async fn query_sys_role_list(
     item: Json<QueryRoleListReq>,
     data: State<AppState>,
@@ -235,7 +235,10 @@ pub async fn query_sys_role_list(
         })
     }
 
-    Ok(BaseResponse::<Vec<RoleListDataResp>>::ok_result_page(sys_role_list_data, total))
+    Ok(BaseResponse::<Vec<RoleListDataResp>>::ok_result_page(
+        sys_role_list_data,
+        total,
+    ))
 }
 
 /*
@@ -243,7 +246,7 @@ pub async fn query_sys_role_list(
  *author：刘飞华
  *date：2024/12/19 09:54:39
  */
-#[web::post("/query_role_menu")]
+#[web::post("/role/queryRoleMenu")]
 pub async fn query_role_menu(
     item: Json<QueryRoleMenuReq>,
     data: State<AppState>,
@@ -290,7 +293,7 @@ pub async fn query_role_menu(
  *author：刘飞华
  *date：2024/12/19 09:54:39
  */
-#[web::post("/update_role_menu")]
+#[web::post("/role/updateRoleMenu")]
 pub async fn update_role_menu(
     item: Json<UpdateRoleMenuReq>,
     data: State<AppState>,

@@ -24,7 +24,7 @@ use sea_orm::{
  *author：刘飞华
  *date：2024/12/19 09:54:39
  */
-#[web::post("/addUser")]
+#[web::post("/user/addUser")]
 pub async fn add_sys_user(
     item: Json<AddUserReq>,
     data: State<AppState>,
@@ -58,7 +58,7 @@ pub async fn add_sys_user(
  *author：刘飞华
  *date：2024/12/19 09:54:39
  */
-#[web::post("/deleteUser")]
+#[web::post("/user/deleteUser")]
 pub async fn delete_sys_user(
     item: Json<DeleteUserReq>,
     data: State<AppState>,
@@ -83,7 +83,7 @@ pub async fn delete_sys_user(
  *author：刘飞华
  *date：2024/12/19 09:54:39
  */
-#[web::post("/updateUser")]
+#[web::post("/user/updateUser")]
 pub async fn update_sys_user(
     item: Json<UpdateUserReq>,
     data: State<AppState>,
@@ -129,7 +129,7 @@ pub async fn update_sys_user(
  *author：刘飞华
  *date：2024/12/19 09:54:39
  */
-#[web::post("/updateUserStatus")]
+#[web::post("/user/updateUserStatus")]
 pub async fn update_sys_user_status(
     item: Json<UpdateUserStatusReq>,
     data: State<AppState>,
@@ -155,7 +155,7 @@ pub async fn update_sys_user_status(
  *author：刘飞华
  *date：2024/12/19 09:54:39
  */
-#[web::post("/update_user_password")]
+#[web::post("/user/updateUserPassword")]
 pub async fn update_user_password(
     item: Json<UpdateUserPwdReq>,
     data: State<AppState>,
@@ -196,7 +196,7 @@ pub async fn update_user_password(
  *author：刘飞华
  *date：2024/12/19 09:54:39
  */
-#[web::post("/queryUserDetail")]
+#[web::post("/user/queryUserDetail")]
 pub async fn query_sys_user_detail(
     item: Json<QueryUserDetailReq>,
     data: State<AppState>,
@@ -221,7 +221,9 @@ pub async fn query_sys_user_detail(
                 update_time: x.update_time.to_string(), //修改时间
             };
 
-            Ok(BaseResponse::<QueryUserDetailResp>::ok_result_data(sys_user))
+            Ok(BaseResponse::<QueryUserDetailResp>::ok_result_data(
+                sys_user,
+            ))
         }
         Err(err) => Ok(BaseResponse::<QueryUserDetailResp>::err_result_data(
             QueryUserDetailResp::new(),
@@ -235,7 +237,7 @@ pub async fn query_sys_user_detail(
  *author：刘飞华
  *date：2024/12/19 09:54:39
  */
-#[web::post("/queryUserList")]
+#[web::post("/user/queryUserList")]
 pub async fn query_sys_user_list(
     item: Json<QueryUserListReq>,
     data: State<AppState>,
@@ -277,7 +279,10 @@ pub async fn query_sys_user_list(
         })
     }
 
-    Ok(BaseResponse::<Vec<UserListDataResp>>::ok_result_page(sys_user_list_data, total))
+    Ok(BaseResponse::<Vec<UserListDataResp>>::ok_result_page(
+        sys_user_list_data,
+        total,
+    ))
 }
 
 // 后台用户登录
@@ -286,7 +291,7 @@ pub async fn query_sys_user_list(
  *author：刘飞华
  *date：2024/12/19 09:54:39
  */
-#[web::post("/login")]
+#[web::post("/user/login")]
 pub async fn login(
     item: Json<UserLoginReq>,
     data: State<AppState>,
@@ -385,7 +390,7 @@ async fn query_btn_menu(conn: &DatabaseConnection, id: i64) -> Vec<String> {
  *author：刘飞华
  *date：2024/12/19 09:54:39
  */
-#[web::post("/query_user_role")]
+#[web::post("/user/queryUserRole")]
 pub async fn query_user_role(
     item: Json<QueryUserRoleReq>,
     data: State<AppState>,
@@ -428,7 +433,7 @@ pub async fn query_user_role(
  *author：刘飞华
  *date：2024/12/19 09:54:39
  */
-#[web::post("/update_user_role")]
+#[web::post("/user/updateUserRole")]
 pub async fn update_user_role(
     item: Json<UpdateUserRoleReq>,
     data: State<AppState>,
@@ -480,7 +485,7 @@ pub async fn update_user_role(
  *author：刘飞华
  *date：2024/12/19 09:54:39
  */
-#[web::get("/query_user_menu")]
+#[web::get("/user/queryUserMenu")]
 pub async fn query_user_menu(
     req: web::HttpRequest,
     data: State<AppState>,
@@ -575,7 +580,7 @@ pub async fn query_user_menu(
     let mut sys_menu: HashSet<MenuList> = HashSet::new();
     for y in SysMenu::find()
         .filter(sys_menu::Column::Id.is_in(menu_ids))
-        .filter(sys_menu::Column::StatusId.eq(1))
+        .filter(sys_menu::Column::Status.eq(1))
         .order_by_asc(sys_menu::Column::Sort)
         .all(conn)
         .await

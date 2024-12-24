@@ -1,8 +1,8 @@
 use std::env;
 
+use crate::handler::system::{sys_menu_handler, sys_role_handler, sys_user_handler};
 use ntex::web;
 use sea_orm::{Database, DatabaseConnection};
-use crate::handler::system::{sys_menu_handler, sys_role_handler, sys_user_handler};
 
 pub mod common;
 pub mod handler;
@@ -32,7 +32,7 @@ async fn main() -> std::io::Result<()> {
             .wrap(web::middleware::Logger::default())
             .wrap(middleware::auth::JwtAuth)
             .service(
-                (web::scope("/api"))
+                (web::scope("/api/system"))
                     .service(sys_user_handler::add_sys_user)
                     .service(sys_user_handler::delete_sys_user)
                     .service(sys_user_handler::update_sys_user)
