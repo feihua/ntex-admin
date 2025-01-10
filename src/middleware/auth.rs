@@ -1,5 +1,5 @@
+use crate::common::error::WhoUnfollowedError;
 use crate::common::result::BaseResponse;
-use crate::utils::error::WhoUnfollowedError;
 use crate::utils::jwt_util::JWTToken;
 use log::info;
 use ntex::http::header;
@@ -37,7 +37,7 @@ where
 
     async fn call(
         &self,
-        req: web::WebRequest<Err>,
+        mut req: web::WebRequest<Err>,
         ctx: ServiceCtx<'_, Self>,
     ) -> Result<Self::Response, Self::Error> {
         let path = req.path().to_string();
@@ -82,6 +82,10 @@ where
         };
 
         if jwt_token.permissions.contains(&path) {
+            req.headers_mut().insert(
+                "userId".parse().unwrap(),
+                jwt_token.id.to_string().parse().unwrap(),
+            );
             Ok(ctx.call(&self.service, req).await?)
         } else {
             log::error!("You has no permissions requested path: {:?}", &path);
