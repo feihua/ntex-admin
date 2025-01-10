@@ -26,3 +26,4 @@ log4rs = "1.0"
 jsonwebtoken = "9.3.0"
 
 thiserror = "2.0.3"
+regex = "1.11.1"
