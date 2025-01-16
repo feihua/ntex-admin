@@ -365,6 +365,10 @@ pub async fn update_role_menu(item: Json<UpdateRoleMenuReq>) -> impl web::Respon
     info!("update role_menu params: {:?}", &item);
     let role_id = item.role_id;
 
+    if role_id == 1 {
+        return BaseResponse::<String>::err_result_msg("不允许操作超级管理员角色".to_string());
+    }
+
     let rb = &mut RB.clone();
 
     let role_menu_result = RoleMenu::delete_by_column(rb, "role_id", &role_id).await;
