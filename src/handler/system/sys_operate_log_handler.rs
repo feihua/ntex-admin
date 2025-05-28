@@ -2,7 +2,7 @@ use log::info;
 use ntex::web;
 use ntex::web::types::Json;
 use rbatis::plugin::page::PageRequest;
-
+use rbs::value;
 use crate::common::result::BaseResponse;
 use crate::model::system::sys_operate_log_model::{clean_operate_log, OperateLog};
 use crate::RB;
@@ -21,7 +21,7 @@ pub async fn delete_sys_operate_log(item: Json<DeleteOperateLogReq>) -> impl web
     info!("delete sys_operate_log params: {:?}", &item);
     let rb = &mut RB.clone();
 
-    let result = OperateLog::delete_in_column(rb, "id", &item.ids).await;
+    let result = OperateLog::delete_by_map(rb, value! {"id": &item.ids}).await;
 
     match result {
         Ok(_u) => BaseResponse::<String>::ok_result(),

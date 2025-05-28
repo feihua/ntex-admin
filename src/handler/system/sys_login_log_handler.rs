@@ -2,7 +2,7 @@ use log::info;
 use ntex::web;
 use ntex::web::types::Json;
 use rbatis::plugin::page::PageRequest;
-
+use rbs::value;
 use crate::common::result::BaseResponse;
 use crate::model::system::sys_login_log_model::{clean_login_log, LoginLog};
 use crate::RB;
@@ -21,7 +21,7 @@ pub async fn delete_sys_login_log(item: Json<DeleteLoginLogReq>) -> impl web::Re
     info!("delete sys_login_log params: {:?}", &item);
     let rb = &mut RB.clone();
 
-    let result = LoginLog::delete_in_column(rb, "id", &item.ids).await;
+    let result = LoginLog::delete_by_map(rb, value! {"id": &item.ids}).await;
 
     match result {
         Ok(_u) => BaseResponse::<String>::ok_result(),

@@ -2,7 +2,7 @@ use log::info;
 use ntex::web;
 use ntex::web::types::Json;
 use rbatis::plugin::page::PageRequest;
-use rbs::to_value;
+use rbs::value;
 
 use crate::common::result::BaseResponse;
 use crate::model::system::sys_notice_model::{ Notice };
@@ -62,7 +62,7 @@ pub async fn delete_sys_notice(item: Json<DeleteNoticeReq>) -> impl web::Respond
     info!("delete sys_notice params: {:?}", &item);
     let rb = &mut RB.clone();
 
-    let result = Notice::delete_in_column(rb, "id", &item.ids).await;
+    let result = Notice::delete_by_map(rb, value! {"id": &item.ids}).await;
 
     match result {
         Ok(_u) => BaseResponse::<String>::ok_result(),
@@ -114,7 +114,7 @@ pub async fn update_sys_notice(item: Json<UpdateNoticeReq>) -> impl web::Respond
         update_time: None,                       //修改时间
     };
 
-    let result = Notice::update_by_column(rb, &sys_notice, "id").await;
+    let result = Notice::update_by_map(rb, &sys_notice, value! {"id": &req.id}).await;
 
     match result {
         Ok(_u) => BaseResponse::<String>::ok_result(),
@@ -143,8 +143,8 @@ pub async fn update_sys_notice_status(item: Json<UpdateNoticeStatusReq>) -> impl
             .join(", ")
     );
 
-    let mut param = vec![to_value!(req.status)];
-    param.extend(req.ids.iter().map(|&id| to_value!(id)));
+    let mut param = vec![value!(req.status)];
+    param.extend(req.ids.iter().map(|&id| value!(id)));
     let result = rb.exec(&update_sql, param).await;
     match result {
         Ok(_u) => BaseResponse::<String>::ok_result(),
