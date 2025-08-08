@@ -1,6 +1,6 @@
-use crate::common::error::WhoUnfollowedError;
+use crate::common::error::AppError;
 use crate::common::result::BaseResponse;
-use crate::utils::jwt_util::JWTToken;
+use crate::utils::jwt_util::JwtToken;
 use log::info;
 use ntex::http::header;
 use ntex::service::{Middleware, Service, ServiceCtx};
@@ -64,11 +64,11 @@ where
             return Ok(req.into_response(HttpResponse::Ok().json(&res)));
         }
 
-        let jwt_token = match JWTToken::verify("123", &authorization.replace("Bearer ", "")) {
+        let jwt_token = match JwtToken::verify("123", &authorization.replace("Bearer ", "")) {
             Ok(j_token) => j_token,
             Result::Err(err) => {
                 let er = match err {
-                    WhoUnfollowedError::JwtTokenError(s) => s,
+                    AppError::JwtTokenError(s) => s,
                     _ => "no math error".to_string(),
                 };
                 log::error!("You requested path: {}, token is err: {}", path, er);

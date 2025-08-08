@@ -1,3 +1,4 @@
+use crate::common::error::AppResult;
 use ntex::http::Response;
 use ntex::web;
 use serde::Serialize;
@@ -5,20 +6,14 @@ use std::fmt::Debug;
 
 // 统一返回vo
 #[derive(Serialize, Debug, Clone)]
-pub struct BaseResponse<T>
-where
-    T: Serialize + Debug,
-{
+pub struct BaseResponse<T> {
     pub code: i32,
     pub msg: String,
     pub data: Option<T>,
 }
 
 #[derive(Serialize, Debug, Clone)]
-pub struct ResponsePage<T>
-where
-    T: Serialize + Debug,
-{
+pub struct ResponsePage<T> {
     pub code: i32,
     pub msg: String,
     pub total: u64,
@@ -26,83 +21,50 @@ where
     pub data: Option<T>,
 }
 
-impl<T> BaseResponse<T>
+pub fn ok_result() -> AppResult<Response> {
+    ok_result_msg("操作成功")
+}
+
+pub fn ok_result_msg(msg: &str) -> AppResult<Response> {
+    let x = &BaseResponse::<String> {
+        msg: msg.to_string(),
+        code: 0,
+        data: Some("None".to_string()),
+    };
+    Ok(web::HttpResponse::Ok().json(x))
+}
+
+pub fn ok_result_data<T>(data: T) -> AppResult<Response>
 where
-    T: Serialize + Debug + Send,
+    T: Serialize,
 {
-    pub fn ok_result() -> Response {
-        web::HttpResponse::Ok().json(&BaseResponse::<String> {
-            msg: "操作成功".to_string(),
-            code: 0,
-            data: Some("None".to_string()),
-        })
-    }
+    let x = &BaseResponse {
+        msg: "操作成功".to_string(),
+        code: 0,
+        data: Some(data),
+    };
+    Ok(web::HttpResponse::Ok().json(x))
+}
 
-    pub fn ok_result_msg(msg: String) -> Response {
-        web::HttpResponse::Ok().json(&BaseResponse::<String> {
-            msg: msg.to_string(),
-            code: 0,
-            data: Some("None".to_string()),
-        })
-    }
+pub fn err_result_msg(msg: &str) -> AppResult<Response> {
+    let x = &BaseResponse::<String> {
+        msg: msg.to_string(),
+        code: 1,
+        data: Some("None".to_string()),
+    };
+    Ok(web::HttpResponse::Ok().json(x))
+}
 
-    pub fn ok_result_code(code: i32, msg: String) -> Response {
-        web::HttpResponse::Ok().json(&BaseResponse::<String> {
-            msg: msg.to_string(),
-            code,
-            data: Some("None".to_string()),
-        })
-    }
-
-    pub fn ok_result_data(data: T) -> Response {
-        web::HttpResponse::Ok().json(&BaseResponse::<T> {
-            msg: "操作成功".to_string(),
-            code: 0,
-            data: Some(data),
-        })
-    }
-
-    pub fn err_result_data(data: T, msg: String) -> Response {
-        web::HttpResponse::Ok().json(&BaseResponse::<T> {
-            msg,
-            code: 1,
-            data: Some(data),
-        })
-    }
-
-    pub fn err_result_msg(msg: String) -> Response {
-        web::HttpResponse::Ok().json(&BaseResponse::<String> {
-            msg: msg.to_string(),
-            code: 1,
-            data: Some("None".to_string()),
-        })
-    }
-
-    pub fn err_result_code(code: i32, msg: String) -> Response {
-        web::HttpResponse::Ok().json(&BaseResponse::<String> {
-            msg: msg.to_string(),
-            code,
-            data: Some("None".to_string()),
-        })
-    }
-
-    pub fn ok_result_page(data: T, total: u64) -> Response {
-        web::HttpResponse::Ok().json(&ResponsePage {
-            msg: "操作成功".to_string(),
-            code: 0,
-            success: true,
-            data: Some(data),
-            total,
-        })
-    }
-
-    pub fn err_result_page(data: T, msg: String) -> Response {
-        web::HttpResponse::Ok().json(&ResponsePage {
-            msg: msg.to_string(),
-            code: 1,
-            success: false,
-            data: Some(data),
-            total: 0,
-        })
-    }
+pub fn ok_result_page<T>(data: T, total: u64) -> AppResult<Response>
+where
+    T: Serialize,
+{
+    let page = &ResponsePage {
+        msg: "操作成功".to_string(),
+        code: 0,
+        success: true,
+        data: Some(data),
+        total,
+    };
+    Ok(web::HttpResponse::Ok().json(page))
 }
