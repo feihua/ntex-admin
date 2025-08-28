@@ -8,6 +8,9 @@ use std::env;
 use dotenvy::dotenv;
 use ntex::web;
 use rbatis::RBatis;
+use rbatis::rbdc::pool::{ConnectionManager, Pool};
+use rbdc_mysql::MysqlDriver;
+use rbdc_pool_fast::FastPool;
 use crate::handler::system::{sys_dept_handler, sys_dict_data_handler, sys_dict_type_handler, sys_login_log_handler, sys_menu_handler, sys_notice_handler, sys_operate_log_handler, sys_post_handler, sys_role_handler, sys_user_handler};
 
 pub mod common;
@@ -26,8 +29,11 @@ async fn main() -> std::io::Result<()> {
     log4rs::init_file("src/config/log4rs.yaml", Default::default()).unwrap();
     dotenv().ok();
     let db_url = env::var("DATABASE_URL").expect("DATABASE_URL is not set in .env file");
-    RB.init(rbdc_mysql::driver::MysqlDriver {}, db_url.as_str())
-        .unwrap();
+    let manager = ConnectionManager::new(MysqlDriver {}, db_url.as_str()).expect("create connection manager error");
+    let pool = FastPool::new(manager).expect("create db pool error");
+
+    RB.init_pool(pool).expect("init db pool error");
+
 
     web::HttpServer::new(|| {
         web::App::new()

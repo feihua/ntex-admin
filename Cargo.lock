@@ -985,6 +985,7 @@ dependencies = [
  "ntex",
  "rbatis",
  "rbdc-mysql",
+ "rbdc-pool-fast",
  "rbs",
  "regex",
  "serde",

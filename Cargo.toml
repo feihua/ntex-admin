@@ -17,6 +17,7 @@ rbatis = { version = "4.6"}
 #rbatis = { version = "4.0",features = ["debug_mode"]}
 rbdc-mysql={version="4.6"}
 dotenvy = "0.15.7"
+rbdc-pool-fast={version="4.6"}
 
 lazy_static = "1.4.0"
 
