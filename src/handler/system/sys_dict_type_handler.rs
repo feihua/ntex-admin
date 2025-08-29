@@ -29,7 +29,7 @@ pub async fn add_sys_dict_type(item: Json<AddDictTypeReq>) -> AppResult<Response
     }
 
     let sys_dict_type = DictType {
-        dict_id: None,                           //字典主键
+        id: None,                           //字典主键
         dict_name: req.dict_name,               //字典名称
         dict_type: req.dict_type,               //字典类型
         status: req.status,                     //状态（0：停用，1:正常）
@@ -82,12 +82,12 @@ pub async fn update_sys_dict_type(item: Json<UpdateDictTypeReq>) -> AppResult<Re
     let rb = &mut RB.clone();
     let req = item.0;
 
-    if DictType::select_by_id(rb, &req.dict_id).await?.is_none() {
+    if DictType::select_by_id(rb, &req.id).await?.is_none() {
         return Err(AppError::BusinessError("字典类型不存在"));
     }
 
     if let Some(x) = DictType::select_by_dict_type(rb, &req.dict_type).await? {
-        if x.dict_id.unwrap_or_default() != req.dict_id {
+        if x.id.unwrap_or_default() != req.id {
             return Err(AppError::BusinessError("字典类型已存在"));
         }
 
@@ -96,7 +96,7 @@ pub async fn update_sys_dict_type(item: Json<UpdateDictTypeReq>) -> AppResult<Re
     }
 
     let sys_dict_type = DictType {
-        dict_id: Some(req.dict_id),             //字典主键
+        id: Some(req.id),             //字典主键
         dict_name: req.dict_name,               //字典名称
         dict_type: req.dict_type,               //字典类型
         status: req.status,                     //状态（0：停用，1:正常）
@@ -105,7 +105,7 @@ pub async fn update_sys_dict_type(item: Json<UpdateDictTypeReq>) -> AppResult<Re
         update_time: None,                       //修改时间
     };
 
-    DictType::update_by_map(rb, &sys_dict_type, value! {"dict_id": &req.dict_id}).await?;
+    DictType::update_by_map(rb, &sys_dict_type, value! {"id": &req.id}).await?;
 
     ok_result()
 }
@@ -123,7 +123,7 @@ pub async fn update_sys_dict_type_status(item: Json<UpdateDictTypeStatusReq>) ->
     let req = item.0;
 
     let update_sql = format!(
-        "update sys_dict_type set status = ? where dict_id in ({})",
+        "update sys_dict_type set status = ? where id in ({})",
         req.ids.iter().map(|_| "?").collect::<Vec<&str>>().join(", ")
     );
 
@@ -148,7 +148,7 @@ pub async fn query_sys_dict_type_detail(item: Json<QueryDictTypeDetailReq>) -> A
         None => Err(AppError::BusinessError("字典类型不存在")),
         Some(x) => {
             let sys_dict_type = QueryDictTypeDetailResp {
-                dict_id: x.dict_id.unwrap_or_default(),     //字典主键
+                id: x.id.unwrap_or_default(),     //字典主键
                 dict_name: x.dict_name,                     //字典名称
                 dict_type: x.dict_type,                     //字典类型
                 status: x.status,                           //状态（0：停用，1:正常）
@@ -186,7 +186,7 @@ pub async fn query_sys_dict_type_list(item: Json<QueryDictTypeListReq>) -> AppRe
 
     for x in d.records {
         list.push(DictTypeListDataResp {
-            dict_id: x.dict_id.unwrap_or_default(),     //字典主键
+            id: x.id.unwrap_or_default(),     //字典主键
             dict_name: x.dict_name,                     //字典名称
             dict_type: x.dict_type,                     //字典类型
             status: x.status,                           //状态（0：停用，1:正常）
