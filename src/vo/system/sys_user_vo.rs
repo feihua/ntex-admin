@@ -181,7 +181,7 @@ impl UserListDataResp {
 */
 #[derive(Debug, Deserialize)]
 pub struct UserLoginReq {
-    pub mobile: String,   //手机
+    pub account: String,   //手机
     pub password: String, //密码
 }
 
