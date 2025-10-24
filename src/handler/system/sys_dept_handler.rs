@@ -260,9 +260,11 @@ pub async fn query_sys_dept_list(item: Json<QueryDeptListReq>) -> AppResult<Resp
     for x in result {
         list.push(DeptListDataResp {
             id: x.id.unwrap_or_default(),               //部门id
+            key: x.id.unwrap().to_string(),             //部门id
             parent_id: x.parent_id,                     //父部门id
             ancestors: x.ancestors,                     //祖级列表
-            dept_name: x.dept_name,                     //部门名称
+            dept_name: x.dept_name.clone(),             //部门名称
+            title: x.dept_name,                         //部门名称
             sort: x.sort,                               //显示顺序
             leader: x.leader,                           //负责人
             phone: x.phone,                             //联系电话

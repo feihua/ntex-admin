@@ -259,6 +259,7 @@ pub async fn query_role_menu(item: Json<QueryRoleMenuReq>) -> AppResult<Response
             key: y.id.unwrap_or_default().to_string(),
             label: y.menu_name,
             is_penultimate: y.parent_id == 2,
+            is_leaf: x.menu_type == 3,
         });
         menu_ids.push(x.id.unwrap())
     }

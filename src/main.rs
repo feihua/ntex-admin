@@ -74,6 +74,8 @@ async fn main() -> std::io::Result<()> {
                     .service(sys_menu_handler::update_sys_menu_status)
                     .service(sys_menu_handler::query_sys_menu_detail)
                     .service(sys_menu_handler::query_sys_menu_list)
+                    .service(sys_menu_handler::query_sys_menu_list_simple)
+                    .service(sys_menu_handler::query_sys_menu_resource_list)
 
                     .service(sys_post_handler::add_sys_post)
                     .service(sys_post_handler::delete_sys_post)

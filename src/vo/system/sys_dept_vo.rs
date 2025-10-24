@@ -118,9 +118,11 @@ pub struct QueryDeptListReq {
 #[serde(rename_all = "camelCase")]
 pub struct DeptListDataResp {
     pub id: i64,             //部门id
+    pub key: String,         //部门id(angular tree使用)
     pub parent_id: i64,      //父部门id
     pub ancestors: String,   //祖级列表
     pub dept_name: String,   //部门名称
+    pub title: String,       //部门名称(angular treeSelect使用)
     pub sort: i32,           //显示顺序
     pub leader: String,      //负责人
     pub phone: String,       //联系电话

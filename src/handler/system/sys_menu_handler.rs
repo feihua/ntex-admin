@@ -2,9 +2,10 @@ use log::info;
 use ntex::http::Response;
 use ntex::web;
 use ntex::web::types::Json;
+use rbatis::PageRequest;
 use rbs::value;
 use crate::common::error::{AppError, AppResult};
-use crate::common::result::{ok_result, ok_result_data};
+use crate::common::result::{ok_result, ok_result_data, ok_result_page};
 use crate::model::system::sys_menu_model::{select_count_menu_by_parent_id, Menu};
 use crate::model::system::sys_role_menu_model::select_count_menu_by_menu_id;
 use crate::utils::time_util::time_to_string;
@@ -65,19 +66,20 @@ pub async fn delete_sys_menu(item: Json<DeleteMenuReq>) -> AppResult<Response> {
     info!("delete sys_menu params: {:?}", &item);
     let rb = &mut RB.clone();
 
-    //有下级的时候 不能直接删除
+    let req = item.0;
+    let ids = req.ids;
+    for x in ids.clone() {
+        if select_count_menu_by_parent_id(rb, &x).await? > 0 {
+            return Err(AppError::BusinessError("存在子菜单,不允许删除"));
+        }
 
-    if select_count_menu_by_parent_id(rb, &item.id).await? > 0 {
-        return Err(AppError::BusinessError("存在子菜单,不允许删除"));
+        if select_count_menu_by_menu_id(rb, &x).await? > 0 {
+            return Err(AppError::BusinessError("菜单已分配,不允许删除"));
+        }
     }
 
-    if select_count_menu_by_menu_id(rb, &item.id).await? > 0 {
-        return Err(AppError::BusinessError("菜单已分配,不允许删除"));
-    }
+    Menu::delete_by_map(rb, value! {"id": &ids}).await.map(|_| ok_result())?
 
-    Menu::delete_by_map(rb, value! {"id": &item.id}).await?;
-
-    ok_result()
 }
 
 /*
@@ -196,7 +198,12 @@ pub async fn query_sys_menu_detail(item: Json<QueryMenuDetailReq>) -> AppResult<
 pub async fn query_sys_menu_list(item: Json<QueryMenuListReq>) -> AppResult<Response> {
     info!("query sys_menu_list params: {:?}", &item);
     let rb = &mut RB.clone();
-    let list = Menu::select_all(rb).await?;
+
+    let req = item.0;
+    let menu_name = req.menu_name;
+    let parent_id = req.parent_id;
+    let status = req.status;
+    let list = Menu::query_sys_menu_list(rb, menu_name, parent_id, status).await?;
 
     let mut menu_list: Vec<MenuListDataResp> = Vec::new();
     for x in list {
@@ -241,4 +248,42 @@ pub async fn query_sys_menu_list_simple() -> AppResult<Response> {
     }
 
     ok_result_data(menu_list)
+}
+
+#[web::post("/menu/queryMenuResourceList")]
+pub async fn query_sys_menu_resource_list(item: Json<QueryMenuListReq>) -> AppResult<Response> {
+    info!("query sys_menu_list params: {:?}", &item);
+    let rb = &mut RB.clone();
+    let req = item.0;
+    let menu_name = req.menu_name;
+    let parent_id = req.parent_id;
+    let status = req.status;
+
+    let page = &PageRequest::new(req.page_no, req.page_size);
+
+    Menu::query_sys_menu_resource_list(rb, page, menu_name, parent_id, status)
+        .await
+        .map(|x| {
+            ok_result_page(
+                x.records
+                    .into_iter()
+                    .map(|x| MenuListDataResp {
+                        id: x.id.unwrap_or_default(),               //主键
+                        menu_name: x.menu_name,                     //菜单名称
+                        menu_type: x.menu_type, //菜单类型(1：目录   2：菜单   3：按钮)
+                        visible: x.visible,     //菜单状态（0:隐藏, 显示:1）
+                        status: x.status,       //状态(1:正常，0:禁用)
+                        sort: x.sort,           //排序
+                        parent_id: x.parent_id, //父ID
+                        menu_url: x.menu_url.unwrap_or_default(), //路由路径
+                        api_url: x.api_url.unwrap_or_default(), //接口URL
+                        menu_icon: x.menu_icon.unwrap_or_default(), //菜单图标
+                        remark: x.remark.unwrap_or_default(), //备注
+                        create_time: time_to_string(x.create_time), //创建时间
+                        update_time: time_to_string(x.update_time), //修改时间
+                    })
+                    .collect::<Vec<MenuListDataResp>>(),
+                x.total,
+            )
+        })?
 }
