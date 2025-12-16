@@ -22,20 +22,16 @@ pub async fn add_sys_menu(item: Json<MenuReq>) -> AppResult<Response> {
     let rb = &mut RB.clone();
     let mut req = item.0;
 
-    if Menu::select_by_menu_name(rb, &req.menu_name)
-        .await?
-        .is_some()
-    {
+    let option = Menu::select_by_menu_name(rb, &req.menu_name).await?;
+    if option.is_some() {
         return Err(AppError::BusinessError("菜单名称已存在"));
     }
 
-    let menu_url = req.menu_url.clone();
-    if menu_url.is_some() {
-        if Menu::select_by_menu_url(rb, &menu_url.unwrap())
-            .await?
-            .is_some()
-        {
-            return Err(AppError::BusinessError("路由路径已存在"));
+    if let Some(url) = req.menu_url.clone() {
+        if url != "".to_string() {
+            if Menu::select_by_menu_url(rb, &url).await?.is_some() {
+                return Err(AppError::BusinessError("路由路径已存在"));
+            }
         }
     }
 
@@ -102,11 +98,12 @@ pub async fn update_sys_menu(item: Json<MenuReq>) -> AppResult<Response> {
         }
     }
 
-    let menu_url = req.menu_url.clone();
-    if menu_url.is_some() {
-        if let Some(x) = Menu::select_by_menu_url(rb, &menu_url.unwrap()).await? {
-            if x.id != req.id {
-                return Err(AppError::BusinessError("路由路径已存在"));
+    if let Some(url) = req.menu_url.clone() {
+        if url != "".to_string() {
+            if let Some(x) = Menu::select_by_menu_url(rb, &url).await? {
+                if x.id != id {
+                    return Err(AppError::BusinessError("路由路径已存在"));
+                }
             }
         }
     }
