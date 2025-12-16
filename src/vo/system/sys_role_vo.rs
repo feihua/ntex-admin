@@ -148,7 +148,7 @@ pub struct QueryRoleMenuData {
 #[serde(rename_all = "camelCase")]
 pub struct MenuDataList {
     pub id: i64,        //主键
-    pub parent_id: i64, //父ID
+    pub parent_id: Option<i64>, //父ID
     pub title: String,
     pub key: String,
     pub label: String,

@@ -675,7 +675,7 @@ pub async fn query_user_menu(req: web::HttpRequest) -> AppResult<Response> {
                 }
                 if x.menu_type != 3 {
                     sys_menu_ids.insert(x.id.unwrap_or_default().clone());
-                    sys_menu_ids.insert(x.parent_id.clone());
+                    sys_menu_ids.insert(x.parent_id.unwrap_or_default().clone());
                 }
 
                 if x.api_url.clone().unwrap_or_default().len() > 0 {

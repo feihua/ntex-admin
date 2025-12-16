@@ -204,7 +204,7 @@ pub struct QueryUserMenuResp {
 #[serde(rename_all = "camelCase")]
 pub struct MenuList {
     pub id: i64,
-    pub parent_id: i64,
+    pub parent_id: Option<i64>,
     pub name: String,
     pub path: String,
     pub api_url: String,
