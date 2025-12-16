@@ -14,7 +14,7 @@ use crate::vo::system::sys_post_vo::*;
 
 
 /*
- *添加岗位信息表
+ *添加岗位信息
  *author：刘飞华
  *date：2025/01/10 09:21:35
  */
@@ -51,7 +51,7 @@ pub async fn add_sys_post(item: Json<AddPostReq>) -> AppResult<Response> {
 
 
 /*
- *删除岗位信息表
+ *删除岗位信息
  *author：刘飞华
  *date：2025/01/10 09:21:35
  */
@@ -81,7 +81,7 @@ pub async fn delete_sys_post(item: Json<DeletePostReq>) -> AppResult<Response> {
 }
 
 /*
- *更新岗位信息表
+ *更新岗位信息
  *author：刘飞华
  *date：2025/01/10 09:21:35
  */
@@ -125,7 +125,7 @@ pub async fn update_sys_post(item: Json<UpdatePostReq>) -> AppResult<Response> {
 }
 
 /*
- *更新岗位信息表状态
+ *更新岗位信息状态
  *author：刘飞华
  *date：2025/01/10 09:21:35
  */
@@ -144,7 +144,7 @@ pub async fn update_sys_post_status(item: Json<UpdatePostStatusReq>) -> AppResul
 }
 
 /*
- *查询岗位信息表详情
+ *查询岗位信息详情
  *author：刘飞华
  *date：2025/01/10 09:21:35
  */
@@ -174,7 +174,7 @@ pub async fn query_sys_post_detail(item: Json<QueryPostDetailReq>) -> AppResult<
 
 
 /*
- *查询岗位信息表列表
+ *查询岗位信息列表
  *author：刘飞华
  *date：2025/01/10 09:21:35
  */

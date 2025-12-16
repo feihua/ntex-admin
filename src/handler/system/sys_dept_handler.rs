@@ -207,7 +207,7 @@ pub async fn update_sys_dept_status(item: Json<UpdateDeptStatusReq>) -> AppResul
 }
 
 /*
- *查询部门表详情
+ *查询部门详情
  *author：刘飞华
  *date：2025/01/10 09:21:35
  */
@@ -242,7 +242,7 @@ pub async fn query_sys_dept_detail(item: Json<QueryDeptDetailReq>) -> AppResult<
 }
 
 /*
- *查询部门表列表
+ *查询部门列表
  *author：刘飞华
  *date：2025/01/10 09:21:35
  */

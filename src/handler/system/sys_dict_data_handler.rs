@@ -13,7 +13,7 @@ use crate::vo::system::sys_dict_data_vo::*;
 
 
 /*
- *添加字典数据表
+ *添加字典数据
  *author：刘飞华
  *date：2025/01/10 09:21:35
  */
@@ -52,7 +52,7 @@ pub async fn add_sys_dict_data(item: Json<AddDictDataReq>) -> AppResult<Response
 
 
 /*
- *删除字典数据表
+ *删除字典数据
  *author：刘飞华
  *date：2025/01/10 09:21:35
  */
@@ -66,7 +66,7 @@ pub async fn delete_sys_dict_data(item: Json<DeleteDictDataReq>) -> AppResult<Re
 }
 
 /*
- *更新字典数据表
+ *更新字典数据
  *author：刘飞华
  *date：2025/01/10 09:21:35
  */
@@ -112,7 +112,7 @@ pub async fn update_sys_dict_data(item: Json<UpdateDictDataReq>) -> AppResult<Re
 }
 
 /*
- *更新字典数据表状态
+ *更新字典数据状态
  *author：刘飞华
  *date：2025/01/10 09:21:35
  */
@@ -135,7 +135,7 @@ pub async fn update_sys_dict_data_status(item: Json<UpdateDictDataStatusReq>) ->
 }
 
 /*
- *查询字典数据表详情
+ *查询字典数据详情
  *author：刘飞华
  *date：2025/01/10 09:21:35
  */
@@ -169,7 +169,7 @@ pub async fn query_sys_dict_data_detail(item: Json<QueryDictDataDetailReq>) -> A
 
 
 /*
- *查询字典数据表列表
+ *查询字典数据列表
  *author：刘飞华
  *date：2025/01/10 09:21:35
  */

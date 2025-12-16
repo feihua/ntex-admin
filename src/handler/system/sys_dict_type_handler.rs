@@ -14,7 +14,7 @@ use crate::vo::system::sys_dict_type_vo::*;
 
 
 /*
- *添加字典类型表
+ *添加字典类型
  *author：刘飞华
  *date：2025/01/10 09:21:35
  */
@@ -45,7 +45,7 @@ pub async fn add_sys_dict_type(item: Json<AddDictTypeReq>) -> AppResult<Response
 
 
 /*
- *删除字典类型表
+ *删除字典类型
  *author：刘飞华
  *date：2025/01/10 09:21:35
  */
@@ -72,7 +72,7 @@ pub async fn delete_sys_dict_type(item: Json<DeleteDictTypeReq>) -> AppResult<Re
 }
 
 /*
- *更新字典类型表
+ *更新字典类型
  *author：刘飞华
  *date：2025/01/10 09:21:35
  */
@@ -111,7 +111,7 @@ pub async fn update_sys_dict_type(item: Json<UpdateDictTypeReq>) -> AppResult<Re
 }
 
 /*
- *更新字典类型表状态
+ *更新字典类型状态
  *author：刘飞华
  *date：2025/01/10 09:21:35
  */
@@ -135,7 +135,7 @@ pub async fn update_sys_dict_type_status(item: Json<UpdateDictTypeStatusReq>) ->
 }
 
 /*
- *查询字典类型表详情
+ *查询字典类型详情
  *author：刘飞华
  *date：2025/01/10 09:21:35
  */
@@ -164,7 +164,7 @@ pub async fn query_sys_dict_type_detail(item: Json<QueryDictTypeDetailReq>) -> A
 
 
 /*
- *查询字典类型表列表
+ *查询字典类型列表
  *author：刘飞华
  *date：2025/01/10 09:21:35
  */

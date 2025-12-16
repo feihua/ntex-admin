@@ -12,7 +12,7 @@ use rbatis::plugin::page::PageRequest;
 use rbs::value;
 
 /*
- *添加通知公告表
+ *添加通知公告
  *author：刘飞华
  *date：2025/01/10 09:21:35
  */
@@ -44,7 +44,7 @@ pub async fn add_sys_notice(item: Json<AddNoticeReq>) -> AppResult<Response> {
 }
 
 /*
- *删除通知公告表
+ *删除通知公告
  *author：刘飞华
  *date：2025/01/10 09:21:35
  */
@@ -59,7 +59,7 @@ pub async fn delete_sys_notice(item: Json<DeleteNoticeReq>) -> AppResult<Respons
 }
 
 /*
- *更新通知公告表
+ *更新通知公告
  *author：刘飞华
  *date：2025/01/10 09:21:35
  */
@@ -72,7 +72,7 @@ pub async fn update_sys_notice(item: Json<UpdateNoticeReq>) -> AppResult<Respons
     let result = Notice::select_by_id(rb, &req.id).await?;
 
     if result.is_none() {
-        return Err(AppError::BusinessError("通知公告表不存在"));
+        return Err(AppError::BusinessError("通知公告不存在"));
     }
 
     let res = Notice::select_by_title(rb, &req.notice_title).await?;
@@ -98,7 +98,7 @@ pub async fn update_sys_notice(item: Json<UpdateNoticeReq>) -> AppResult<Respons
 }
 
 /*
- *更新通知公告表状态
+ *更新通知公告状态
  *author：刘飞华
  *date：2025/01/10 09:21:35
  */
@@ -125,7 +125,7 @@ pub async fn update_sys_notice_status(item: Json<UpdateNoticeStatusReq>) -> AppR
 }
 
 /*
- *查询通知公告表详情
+ *查询通知公告详情
  *author：刘飞华
  *date：2025/01/10 09:21:35
  */
@@ -135,7 +135,7 @@ pub async fn query_sys_notice_detail(item: Json<QueryNoticeDetailReq>) -> AppRes
     let rb = &mut RB.clone();
 
     match Notice::select_by_id(rb, &item.id).await? {
-        None => Err(AppError::BusinessError("通知公告表不存在")),
+        None => Err(AppError::BusinessError("通知公告不存在")),
         Some(x) => {
             let sys_notice = QueryNoticeDetailResp {
                 id: x.id.unwrap_or_default(),               //公告ID
@@ -154,7 +154,7 @@ pub async fn query_sys_notice_detail(item: Json<QueryNoticeDetailReq>) -> AppRes
 }
 
 /*
- *查询通知公告表列表
+ *查询通知公告列表
  *author：刘飞华
  *date：2025/01/10 09:21:35
  */
