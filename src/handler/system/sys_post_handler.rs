@@ -1,17 +1,15 @@
+use crate::common::error::{AppError, AppResult};
+use crate::common::result::{ok_result, ok_result_data, ok_result_page};
+use crate::model::system::sys_post_model::Post;
+use crate::model::system::sys_user_post_model::count_user_post_by_id;
+use crate::vo::system::sys_post_vo::*;
+use crate::RB;
 use log::info;
 use ntex::http::Response;
 use ntex::web;
 use ntex::web::types::Json;
 use rbatis::plugin::page::PageRequest;
 use rbs::value;
-use crate::common::error::{AppError, AppResult};
-use crate::common::result::{ok_result, ok_result_data, ok_result_page};
-use crate::model::system::sys_post_model::{ Post };
-use crate::model::system::sys_user_post_model::count_user_post_by_id;
-use crate::RB;
-use crate::utils::time_util::time_to_string;
-use crate::vo::system::sys_post_vo::*;
-
 
 /*
  *添加岗位信息
@@ -19,10 +17,10 @@ use crate::vo::system::sys_post_vo::*;
  *date：2025/01/10 09:21:35
  */
 #[web::post("/post/addPost")]
-pub async fn add_sys_post(item: Json<AddPostReq>) -> AppResult<Response> {
+pub async fn add_sys_post(item: Json<PostReq>) -> AppResult<Response> {
     info!("add sys_post params: {:?}", &item);
     let rb = &mut RB.clone();
-    let req = item.0;
+    let mut req = item.0;
 
     if Post::select_by_name(rb, &req.post_name).await?.is_some() {
         return Err(AppError::BusinessError("岗位名称已存在"));
@@ -32,23 +30,11 @@ pub async fn add_sys_post(item: Json<AddPostReq>) -> AppResult<Response> {
         return Err(AppError::BusinessError("岗位编码已存在"));
     }
 
-    let sys_post = Post {
-        id: None,                                //岗位id
-        post_code: req.post_code,               //岗位编码
-        post_name: req.post_name,               //岗位名称
-        sort: req.sort,                         //显示顺序
-        status: req.status,                     //部状态（0：停用，1:正常）
-        remark: req.remark.unwrap_or_default(), //备注
-        create_time: None,                       //创建时间
-        update_time: None,                       //更新时间
-    };
-
-    Post::insert(rb, &sys_post).await?;
-
-    ok_result()
-
+    req.id = None;
+    Post::insert(rb, &Post::from(req))
+        .await
+        .map(|_| ok_result())?
 }
-
 
 /*
  *删除岗位信息
@@ -86,42 +72,34 @@ pub async fn delete_sys_post(item: Json<DeletePostReq>) -> AppResult<Response> {
  *date：2025/01/10 09:21:35
  */
 #[web::post("/post/updatePost")]
-pub async fn update_sys_post(item: Json<UpdatePostReq>) -> AppResult<Response> {
+pub async fn update_sys_post(item: Json<PostReq>) -> AppResult<Response> {
     info!("update sys_post params: {:?}", &item);
     let rb = &mut RB.clone();
     let req = item.0;
 
-
-    if Post::select_by_id(rb, &req.id).await?.is_none() {
+    let id = req.id;
+    if Post::select_by_id(rb, &id.unwrap_or_default())
+        .await?
+        .is_none()
+    {
         return Err(AppError::BusinessError("岗位不存在"));
     }
 
     if let Some(x) = Post::select_by_name(rb, &req.post_name).await? {
-        if x.id.unwrap_or_default() != req.id {
+        if x.id != req.id {
             return Err(AppError::BusinessError("岗位名称已存在"));
         }
     }
 
     if let Some(x) = Post::select_by_code(rb, &req.post_code).await? {
-        if x.id.unwrap_or_default() != req.id {
+        if x.id != req.id {
             return Err(AppError::BusinessError("岗位编码已存在"));
         }
     }
 
-    let sys_post = Post {
-        id: Some(req.id),                       //岗位id
-        post_code: req.post_code,               //岗位编码
-        post_name: req.post_name,               //岗位名称
-        sort: req.sort,                         //显示顺序
-        status: req.status,                     //部状态（0：停用，1:正常）
-        remark: req.remark.unwrap_or_default(), //备注
-        create_time: None,                       //创建时间
-        update_time: None,                       //更新时间
-    };
-
-    Post::update_by_map(rb, &sys_post, value! {"id": &req.id}).await?;
-
-    ok_result()
+    Post::update_by_map(rb, &Post::from(req), value! {"id": &id})
+        .await
+        .map(|_| ok_result())?
 }
 
 /*
@@ -134,7 +112,14 @@ pub async fn update_sys_post_status(item: Json<UpdatePostStatusReq>) -> AppResul
     info!("update sys_post_status params: {:?}", &item);
     let rb = &mut RB.clone();
 
-    let update_sql = format!("update sys_post set status = ? where id in ({})", item.ids.iter().map(|_| "?").collect::<Vec<&str>>().join(", "));
+    let update_sql = format!(
+        "update sys_post set status = ? where id in ({})",
+        item.ids
+            .iter()
+            .map(|_| "?")
+            .collect::<Vec<&str>>()
+            .join(", ")
+    );
 
     let mut param = vec![value!(item.status)];
     param.extend(item.ids.iter().map(|&id| value!(id)));
@@ -156,22 +141,11 @@ pub async fn query_sys_post_detail(item: Json<QueryPostDetailReq>) -> AppResult<
     match Post::select_by_id(rb, &item.id).await? {
         None => Err(AppError::BusinessError("岗位不存在")),
         Some(x) => {
-            let sys_post = QueryPostDetailResp {
-                id: x.id.unwrap_or_default(),               //岗位id
-                post_code: x.post_code,                     //岗位编码
-                post_name: x.post_name,                     //岗位名称
-                sort: x.sort,                               //显示顺序
-                status: x.status,                           //部状态（0：停用，1:正常）
-                remark: x.remark,                           //备注
-                create_time: time_to_string(x.create_time), //创建时间
-                update_time: time_to_string(x.update_time), //更新时间
-            };
-
-            ok_result_data(sys_post)
+            let data: Post = x.into();
+            ok_result_data(data)
         }
     }
 }
-
 
 /*
  *查询岗位信息列表
@@ -188,23 +162,14 @@ pub async fn query_sys_post_list(item: Json<QueryPostListReq>) -> AppResult<Resp
     let status = item.status.unwrap_or(2); //部状态（0：停用，1:正常）
 
     let page = &PageRequest::new(item.page_no, item.page_size);
-    let d=Post::select_post_list(rb, page, post_code, post_name, status).await?;
+    let d = Post::select_post_list(rb, page, post_code, post_name, status).await?;
 
-    let mut list: Vec<PostListDataResp> = Vec::new();
+    let mut list: Vec<PostResp> = Vec::new();
 
     let total = d.total;
 
     for x in d.records {
-        list.push(PostListDataResp {
-            id: x.id.unwrap_or_default(),               //岗位id
-            post_code: x.post_code,                     //岗位编码
-            post_name: x.post_name,                     //岗位名称
-            sort: x.sort,                               //显示顺序
-            status: x.status,                           //部状态（0：停用，1:正常）
-            remark: x.remark,                           //备注
-            create_time: time_to_string(x.create_time), //创建时间
-            update_time: time_to_string(x.update_time), //更新时间
-        })
+        list.push(x.into())
     }
 
     ok_result_page(list, total)

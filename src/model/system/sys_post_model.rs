@@ -2,9 +2,9 @@
 // author：刘飞华
 // createTime：2024/12/25 10:01:11
 
+use crate::vo::system::sys_post_vo::{PostReq, PostResp};
 use rbatis::rbdc::datetime::DateTime;
 use serde::{Deserialize, Serialize};
-
 /*
  *岗位信息
  *author：刘飞华
@@ -17,7 +17,7 @@ pub struct Post {
     pub post_name: String,             //岗位名称
     pub sort: i32,                     //显示顺序
     pub status: i8,                    //部状态（0：停用，1:正常）
-    pub remark: String,                //备注
+    pub remark: Option<String>,        //备注
     pub create_time: Option<DateTime>, //创建时间
     pub update_time: Option<DateTime>, //更新时间
 }
@@ -28,6 +28,42 @@ pub struct Post {
  *date：2024/12/25 10:01:11
  */
 rbatis::crud!(Post {}, "sys_post");
+
+impl From<PostReq> for Post {
+    fn from(item: PostReq) -> Self {
+        let mut model = Post {
+            id: item.id,               //岗位id
+            post_code: item.post_code, //岗位编码
+            post_name: item.post_name, //岗位名称
+            sort: item.sort,           //显示顺序
+            status: item.status,       //部状态（0：停用，1:正常）
+            remark: item.remark,       //备注
+            create_time: None,         //创建时间
+            update_time: None,         //更新时间
+        };
+        if let None = item.id {
+            model.create_time = Some(DateTime::now());
+        } else {
+            model.update_time = Some(DateTime::now());
+        }
+        model
+    }
+}
+
+impl Into<PostResp> for Post {
+    fn into(self) -> PostResp {
+        PostResp {
+            id: self.id,                   //岗位id
+            post_code: self.post_code,     //岗位编码
+            post_name: self.post_name,     //岗位名称
+            sort: self.sort,               //显示顺序
+            status: self.status,           //部状态（0：停用，1:正常）
+            remark: self.remark,           //备注
+            create_time: self.create_time, //创建时间
+            update_time: self.update_time, //更新时间
+        }
+    }
+}
 
 /*
  *根据id查询岗位信息
