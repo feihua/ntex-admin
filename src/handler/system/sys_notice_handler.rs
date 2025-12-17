@@ -1,7 +1,6 @@
 use crate::common::error::{AppError, AppResult};
 use crate::common::result::{ok_result, ok_result_data, ok_result_page};
 use crate::model::system::sys_notice_model::Notice;
-use crate::utils::time_util::time_to_string;
 use crate::vo::system::sys_notice_vo::*;
 use crate::RB;
 use log::info;
@@ -17,30 +16,20 @@ use rbs::value;
  *date：2025/01/10 09:21:35
  */
 #[web::post("/notice/addNotice")]
-pub async fn add_sys_notice(item: Json<AddNoticeReq>) -> AppResult<Response> {
+pub async fn add_sys_notice(item: Json<NoticeReq>) -> AppResult<Response> {
     info!("add sys_notice params: {:?}", &item);
     let rb = &mut RB.clone();
-    let req = item.0;
+    let mut req = item.0;
 
     let res = Notice::select_by_title(rb, &req.notice_title).await?;
     if res.is_some() {
         return Err(AppError::BusinessError("公告标题已存在"));
     }
 
-    let sys_notice = Notice {
-        id: None,                               //公告ID
-        notice_title: req.notice_title,         //公告标题
-        notice_type: req.notice_type,           //公告类型（1:通知,2:公告）
-        notice_content: req.notice_content,     //公告内容
-        status: req.status,                     //公告状态（0:关闭,1:正常 ）
-        remark: req.remark.unwrap_or_default(), //备注
-        create_time: None,                      //创建时间
-        update_time: None,                      //修改时间
-    };
-
-    Notice::insert(rb, &sys_notice).await?;
-
-    ok_result()
+    req.id = None;
+    Notice::insert(rb, &Notice::from(req))
+        .await
+        .map(|_| ok_result())?
 }
 
 /*
@@ -64,12 +53,13 @@ pub async fn delete_sys_notice(item: Json<DeleteNoticeReq>) -> AppResult<Respons
  *date：2025/01/10 09:21:35
  */
 #[web::post("/notice/updateNotice")]
-pub async fn update_sys_notice(item: Json<UpdateNoticeReq>) -> AppResult<Response> {
+pub async fn update_sys_notice(item: Json<NoticeReq>) -> AppResult<Response> {
     info!("update sys_notice params: {:?}", &item);
     let rb = &mut RB.clone();
     let req = item.0;
 
-    let result = Notice::select_by_id(rb, &req.id).await?;
+    let id = req.id;
+    let result = Notice::select_by_id(rb, &id.unwrap_or_default()).await?;
 
     if result.is_none() {
         return Err(AppError::BusinessError("通知公告不存在"));
@@ -77,24 +67,15 @@ pub async fn update_sys_notice(item: Json<UpdateNoticeReq>) -> AppResult<Respons
 
     let res = Notice::select_by_title(rb, &req.notice_title).await?;
 
-    if res.is_some() && res.unwrap().id.unwrap_or_default() != req.id {
-        return Err(AppError::BusinessError("公告标题已存在"));
+    if let Some(x) = res {
+        if x.id != id {
+            return Err(AppError::BusinessError("公告标题已存在"));
+        }
     }
 
-    let sys_notice = Notice {
-        id: Some(req.id),                       //公告ID
-        notice_title: req.notice_title,         //公告标题
-        notice_type: req.notice_type,           //公告类型（1:通知,2:公告）
-        notice_content: req.notice_content,     //公告内容
-        status: req.status,                     //公告状态（0:关闭,1:正常 ）
-        remark: req.remark.unwrap_or_default(), //备注
-        create_time: None,                      //创建时间
-        update_time: None,                      //修改时间
-    };
-
-    Notice::update_by_map(rb, &sys_notice, value! {"id": &req.id}).await?;
-
-    ok_result()
+    Notice::update_by_map(rb, &Notice::from(req), value! {"id": &id})
+        .await
+        .map(|_| ok_result())?
 }
 
 /*
@@ -137,18 +118,8 @@ pub async fn query_sys_notice_detail(item: Json<QueryNoticeDetailReq>) -> AppRes
     match Notice::select_by_id(rb, &item.id).await? {
         None => Err(AppError::BusinessError("通知公告不存在")),
         Some(x) => {
-            let sys_notice = QueryNoticeDetailResp {
-                id: x.id.unwrap_or_default(),               //公告ID
-                notice_title: x.notice_title,               //公告标题
-                notice_type: x.notice_type,                 //公告类型（1:通知,2:公告）
-                notice_content: x.notice_content,           //公告内容
-                status: x.status,                           //公告状态（0:关闭,1:正常 ）
-                remark: x.remark,                           //备注
-                create_time: time_to_string(x.create_time), //创建时间
-                update_time: time_to_string(x.update_time), //修改时间
-            };
-
-            ok_result_data(sys_notice)
+            let data: NoticeResp = x.into();
+            ok_result_data(data)
         }
     }
 }
@@ -169,20 +140,11 @@ pub async fn query_sys_notice_list(item: Json<QueryNoticeListReq>) -> AppResult<
     let page = &PageRequest::new(item.page_no, item.page_size);
     let d = Notice::select_sys_notice_list(rb, page, notice_title, notice_type, status).await?;
 
-    let mut data: Vec<NoticeListDataResp> = Vec::new();
+    let mut data: Vec<NoticeResp> = Vec::new();
     let total = d.total;
 
     for x in d.records {
-        data.push(NoticeListDataResp {
-            id: x.id.unwrap_or_default(),               //公告ID
-            notice_title: x.notice_title,               //公告标题
-            notice_type: x.notice_type,                 //公告类型（1:通知,2:公告）
-            notice_content: x.notice_content,           //公告内容
-            status: x.status,                           //公告状态（0:关闭,1:正常 ）
-            remark: x.remark,                           //备注
-            create_time: time_to_string(x.create_time), //创建时间
-            update_time: time_to_string(x.update_time), //修改时间
-        })
+        data.push(x.into())
     }
 
     ok_result_page(data, total)
