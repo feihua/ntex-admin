@@ -1,6 +1,8 @@
 // author：刘飞华
 // createTime：2024/12/12 14:41:44
 
+use crate::common::result::serialize_datetime;
+use rbatis::rbdc::DateTime;
 use serde::{Deserialize, Serialize};
 
 /*
@@ -8,7 +10,8 @@ use serde::{Deserialize, Serialize};
 */
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
-pub struct AddRoleReq {
+pub struct RoleReq {
+    pub id: Option<i64>,        //主键
     pub role_name: String,      //名称
     pub role_key: String,       //角色权限字符串
     pub data_scope: i8, //数据范围（1：全部数据权限 2：自定数据权限 3：本部门数据权限 4：本部门及以下数据权限）
@@ -22,20 +25,6 @@ pub struct AddRoleReq {
 #[derive(Debug, Serialize, Deserialize)]
 pub struct DeleteRoleReq {
     pub ids: Vec<i64>,
-}
-
-/*
-更新角色信息请求参数
-*/
-#[derive(Debug, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct UpdateRoleReq {
-    pub id: i64,                //主键
-    pub role_name: String,      //名称
-    pub role_key: String,       //角色权限字符串
-    pub data_scope: i8, //数据范围（1：全部数据权限 2：自定数据权限 3：本部门数据权限 4：本部门及以下数据权限）
-    pub status: i8,     //状态(1:正常，0:禁用)
-    pub remark: Option<String>, //备注
 }
 
 /*
@@ -56,39 +45,6 @@ pub struct QueryRoleDetailReq {
 }
 
 /*
-查询角色信息详情响应参数
-*/
-#[derive(Debug, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct QueryRoleDetailResp {
-    pub id: i64,              //主键
-    pub role_name: String,    //名称
-    pub role_key: String,     //角色权限字符串
-    pub data_scope: i8, //数据范围（1：全部数据权限 2：自定数据权限 3：本部门数据权限 4：本部门及以下数据权限）
-    pub status: i8,     //状态(1:正常，0:禁用)
-    pub remark: String, //备注
-    pub del_flag: Option<i8>, //删除标志（0代表删除 1代表存在）
-    pub create_time: String, //创建时间
-    pub update_time: String, //修改时间
-}
-
-impl QueryRoleDetailResp {
-    pub fn new() -> QueryRoleDetailResp {
-        QueryRoleDetailResp {
-            id: 0,
-            role_name: "".to_string(),
-            role_key: "".to_string(),
-            data_scope: 0,
-            status: 0,
-            remark: "".to_string(),
-            del_flag: None,
-            create_time: "".to_string(),
-            update_time: "".to_string(),
-        }
-    }
-}
-
-/*
 查询角色信息列表请求参数
 */
 #[derive(Debug, Serialize, Deserialize)]
@@ -104,24 +60,21 @@ pub struct QueryRoleListReq {
 /*
 查询角色信息列表响应参数
 */
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 #[serde(rename_all = "camelCase")]
-pub struct RoleListDataResp {
-    pub id: i64,              //主键
-    pub role_name: String,    //名称
-    pub role_key: String,     //角色权限字符串
+pub struct RoleResp {
+    pub id: Option<i64>,        //主键
+    pub role_name: String,      //名称
+    pub role_key: String,       //角色权限字符串
     pub data_scope: i8, //数据范围（1：全部数据权限 2：自定数据权限 3：本部门数据权限 4：本部门及以下数据权限）
     pub status: i8,     //状态(1:正常，0:禁用)
-    pub remark: String, //备注
-    pub del_flag: Option<i8>, //删除标志（0代表删除 1代表存在）
-    pub create_time: String, //创建时间
-    pub update_time: String, //修改时间
+    pub remark: Option<String>, //备注
+    #[serde(serialize_with = "serialize_datetime")]
+    pub create_time: Option<DateTime>, //创建时间
+    #[serde(serialize_with = "serialize_datetime")]
+    pub update_time: Option<DateTime>, //修改时间
 }
-impl RoleListDataResp {
-    pub fn new() -> Vec<RoleListDataResp> {
-        Vec::new()
-    }
-}
+
 /*
 查询角色菜单信息参数
 */
@@ -147,7 +100,7 @@ pub struct QueryRoleMenuData {
 #[derive(Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct MenuDataList {
-    pub id: i64,        //主键
+    pub id: i64,                //主键
     pub parent_id: Option<i64>, //父ID
     pub title: String,
     pub key: String,

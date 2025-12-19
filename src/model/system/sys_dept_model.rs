@@ -2,10 +2,10 @@
 // author：刘飞华
 // createTime：2024/12/25 10:01:11
 
+use crate::vo::system::sys_dept_vo::{DeptReq, DeptResp};
 use rbatis::rbdc::datetime::DateTime;
 use rbatis::RBatis;
 use serde::{Deserialize, Serialize};
-
 /*
  *部门
  *author：刘飞华
@@ -15,7 +15,7 @@ use serde::{Deserialize, Serialize};
 pub struct Dept {
     pub id: Option<i64>,               //部门id
     pub parent_id: i64,                //父部门id
-    pub ancestors: String,             //祖级列
+    pub ancestors: Option<String>,             //祖级列
     pub dept_name: String,             //部门名称
     pub sort: i32,                     //显示顺序
     pub leader: String,                //负责人
@@ -33,6 +33,52 @@ pub struct Dept {
  *date：2024/12/25 10:01:11
  */
 rbatis::crud!(Dept {}, "sys_dept");
+
+impl From<DeptReq> for Dept {
+    fn from(item: DeptReq) -> Self {
+        let mut model = Dept {
+            id: item.id,                                   //部门id
+            parent_id: item.parent_id,                     //父部门id
+            ancestors: item.ancestors, //祖级列表
+            dept_name: item.dept_name,                     //部门名称
+            sort: item.sort,                               //显示顺序
+            leader: item.leader,                           //负责人
+            phone: item.phone,                             //联系电话
+            email: item.email,                             //邮箱
+            status: item.status,                           //部状态（0：停用，1:正常）
+            del_flag: None,                                //删除标志（0代表删除 1代表存在）
+            create_time: None,                             //创建时间
+            update_time: None,                             //修改时间
+        };
+        if let None = item.id {
+            model.create_time = Some(DateTime::now());
+        } else {
+            model.update_time = Some(DateTime::now());
+        }
+        model
+    }
+}
+
+impl Into<DeptResp> for Dept {
+    fn into(self) -> DeptResp {
+        DeptResp {
+            id: self.id,                       //部门id
+            key: self.id.unwrap().to_string(), //部门id
+            parent_id: self.parent_id,         //父部门id
+            ancestors: self.ancestors,         //祖级列表
+            dept_name: self.dept_name.clone(), //部门名称
+            title: self.dept_name,             //部门名称
+            sort: self.sort,                   //显示顺序
+            leader: self.leader,               //负责人
+            phone: self.phone,                 //联系电话
+            email: self.email,                 //邮箱
+            status: self.status,               //部状态（0：停用，1:正常）
+            del_flag: self.del_flag,
+            create_time: self.create_time, //创建时间
+            update_time: self.update_time, //修改时间
+        }
+    }
+}
 
 /*
  *根据id查询部门
