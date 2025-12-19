@@ -45,9 +45,7 @@ pub async fn clean_sys_operate_log() -> AppResult<Response> {
  *date：2025/01/10 09:21:35
  */
 #[web::post("/operateLog/queryOperateLogDetail")]
-pub async fn query_sys_operate_log_detail(
-    item: Json<QueryOperateLogDetailReq>,
-) -> AppResult<Response> {
+pub async fn query_sys_operate_log_detail(item: Json<QueryOperateLogDetailReq>) -> AppResult<Response> {
     info!("query sys_operate_log_detail params: {:?}", &item);
     let rb = &mut RB.clone();
 

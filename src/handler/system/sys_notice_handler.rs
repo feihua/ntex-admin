@@ -27,9 +27,7 @@ pub async fn add_sys_notice(item: Json<NoticeReq>) -> AppResult<Response> {
     }
 
     req.id = None;
-    Notice::insert(rb, &Notice::from(req))
-        .await
-        .map(|_| ok_result())?
+    Notice::insert(rb, &Notice::from(req)).await.map(|_| ok_result())?
 }
 
 /*
@@ -73,9 +71,7 @@ pub async fn update_sys_notice(item: Json<NoticeReq>) -> AppResult<Response> {
         }
     }
 
-    Notice::update_by_map(rb, &Notice::from(req), value! {"id": &id})
-        .await
-        .map(|_| ok_result())?
+    Notice::update_by_map(rb, &Notice::from(req), value! {"id": &id}).await.map(|_| ok_result())?
 }
 
 /*
@@ -90,14 +86,7 @@ pub async fn update_sys_notice_status(item: Json<UpdateNoticeStatusReq>) -> AppR
 
     let req = item.0;
 
-    let update_sql = format!(
-        "update sys_notice set status = ? where id in ({})",
-        req.ids
-            .iter()
-            .map(|_| "?")
-            .collect::<Vec<&str>>()
-            .join(", ")
-    );
+    let update_sql = format!("update sys_notice set status = ? where id in ({})", req.ids.iter().map(|_| "?").collect::<Vec<&str>>().join(", "));
 
     let mut param = vec![value!(req.status)];
     param.extend(req.ids.iter().map(|&id| value!(id)));

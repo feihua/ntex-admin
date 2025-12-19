@@ -2,10 +2,10 @@
 // author：刘飞华
 // createTime：2024/12/25 10:01:11
 
+use crate::vo::system::sys_operate_log_vo::OperateLogResp;
 use rbatis::rbdc::datetime::DateTime;
 use rbatis::RBatis;
 use serde::{Deserialize, Serialize};
-use crate::vo::system::sys_operate_log_vo::OperateLogResp;
 /*
  *操作日志记录
  *author：刘飞华
@@ -38,7 +38,6 @@ pub struct OperateLog {
  *date：2024/12/25 10:01:11
  */
 rbatis::crud!(OperateLog {}, "sys_operate_log");
-
 
 impl Into<OperateLogResp> for OperateLog {
     fn into(self) -> OperateLogResp {

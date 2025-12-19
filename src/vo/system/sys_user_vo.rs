@@ -2,17 +2,17 @@
 // createTime：2024/12/12 14:41:44
 
 use crate::common::result::serialize_datetime;
-use rbatis::rbdc::DateTime;
-use crate::vo::system::sys_dept_vo::{DeptResp};
-use serde::{Deserialize, Serialize};
+use crate::vo::system::sys_dept_vo::DeptResp;
 use crate::vo::system::sys_role_vo::RoleResp;
+use rbatis::rbdc::DateTime;
+use serde::{Deserialize, Serialize};
 /*
 添加用户信息请求参数
 */
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct UserReq {
-    pub id: Option<i64>,           //主键
+    pub id: Option<i64>,        //主键
     pub mobile: String,         //手机
     pub user_name: String,      //用户账号
     pub nick_name: String,      //用户昵称
@@ -32,7 +32,6 @@ pub struct UserReq {
 pub struct DeleteUserReq {
     pub ids: Vec<i64>,
 }
-
 
 /*
 更新用户信息状态请求参数
@@ -101,7 +100,7 @@ pub struct UserResp {
 */
 #[derive(Debug, Deserialize)]
 pub struct UserLoginReq {
-    pub account: String,   //手机
+    pub account: String,  //手机
     pub password: String, //密码
 }
 

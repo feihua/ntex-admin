@@ -1,15 +1,14 @@
+use crate::common::error::{AppError, AppResult};
+use crate::common::result::{ok_result, ok_result_data, ok_result_page};
+use crate::model::system::sys_dict_data_model::DictData;
+use crate::vo::system::sys_dict_data_vo::*;
+use crate::RB;
 use log::info;
 use ntex::http::Response;
 use ntex::web;
 use ntex::web::types::Json;
 use rbatis::plugin::page::PageRequest;
 use rbs::value;
-use crate::common::error::{AppError, AppResult};
-use crate::common::result::{ok_result, ok_result_data, ok_result_page};
-use crate::model::system::sys_dict_data_model::{ DictData };
-use crate::RB;
-use crate::vo::system::sys_dict_data_vo::*;
-
 
 /*
  *添加字典数据
@@ -34,7 +33,6 @@ pub async fn add_sys_dict_data(item: Json<DictDataReq>) -> AppResult<Response> {
     DictData::insert(rb, &DictData::from(req)).await.map(|_| ok_result())?
 }
 
-
 /*
  *删除字典数据
  *author：刘飞华
@@ -46,7 +44,6 @@ pub async fn delete_sys_dict_data(item: Json<DeleteDictDataReq>) -> AppResult<Re
     let rb = &mut RB.clone();
 
     DictData::delete_by_map(rb, value! {"id": &item.ids}).await.map(|_| ok_result())?
-
 }
 
 /*
@@ -83,7 +80,6 @@ pub async fn update_sys_dict_data(item: Json<DictDataReq>) -> AppResult<Response
     }
 
     DictData::update_by_map(rb, &DictData::from(req), value! {"id": &id}).await.map(|_| ok_result())?
-
 }
 
 /*
@@ -98,10 +94,7 @@ pub async fn update_sys_dict_data_status(item: Json<UpdateDictDataStatusReq>) ->
 
     let req = item.0;
 
-    let update_sql = format!(
-        "update sys_dict_data set status = ? where id in ({})",
-        req.ids.iter().map(|_| "?").collect::<Vec<&str>>().join(", ")
-    );
+    let update_sql = format!("update sys_dict_data set status = ? where id in ({})", req.ids.iter().map(|_| "?").collect::<Vec<&str>>().join(", "));
 
     let mut param = vec![value!(req.status)];
     param.extend(req.ids.iter().map(|&id| value!(id)));
@@ -128,7 +121,6 @@ pub async fn query_sys_dict_data_detail(item: Json<QueryDictDataDetailReq>) -> A
     }
 }
 
-
 /*
  *查询字典数据列表
  *author：刘飞华
@@ -144,7 +136,7 @@ pub async fn query_sys_dict_data_list(item: Json<QueryDictDataListReq>) -> AppRe
     let status = item.status.unwrap_or(2); //状态（0：停用，1:正常）
 
     let page = &PageRequest::new(item.page_no, item.page_size);
-    let d=DictData::select_dict_data_list(rb, page, dict_label, dict_type, status).await?;
+    let d = DictData::select_dict_data_list(rb, page, dict_label, dict_type, status).await?;
 
     let mut list: Vec<DictDataResp> = Vec::new();
 

@@ -22,17 +22,12 @@ pub async fn add_sys_dict_type(item: Json<DictTypeReq>) -> AppResult<Response> {
     let rb = &mut RB.clone();
     let mut req = item.0;
 
-    if DictType::select_by_dict_type(rb, &req.dict_type)
-        .await?
-        .is_some()
-    {
+    if DictType::select_by_dict_type(rb, &req.dict_type).await?.is_some() {
         return Err(AppError::BusinessError("字典类型已存在"));
     }
 
     req.id = None;
-    DictType::insert(rb, &DictType::from(req))
-        .await
-        .map(|_| ok_result())?
+    DictType::insert(rb, &DictType::from(req)).await.map(|_| ok_result())?
 }
 
 /*
@@ -57,9 +52,7 @@ pub async fn delete_sys_dict_type(item: Json<DeleteDictTypeReq>) -> AppResult<Re
         }
     }
 
-    DictType::delete_by_map(rb, value! {"id": &item.ids})
-        .await
-        .map(|_| ok_result())?
+    DictType::delete_by_map(rb, value! {"id": &item.ids}).await.map(|_| ok_result())?
 }
 
 /*
@@ -75,10 +68,7 @@ pub async fn update_sys_dict_type(item: Json<DictTypeReq>) -> AppResult<Response
 
     let id = req.id;
 
-    if DictType::select_by_id(rb, &id.unwrap_or_default())
-        .await?
-        .is_none()
-    {
+    if DictType::select_by_id(rb, &id.unwrap_or_default()).await?.is_none() {
         return Err(AppError::BusinessError("字典类型不存在"));
     }
 
@@ -91,9 +81,7 @@ pub async fn update_sys_dict_type(item: Json<DictTypeReq>) -> AppResult<Response
         update_dict_data_type(rb, &*req.dict_type, &dict_type).await?;
     }
 
-    DictType::update_by_map(rb, &DictType::from(req), value! {"id": &id})
-        .await
-        .map(|_| ok_result())?
+    DictType::update_by_map(rb, &DictType::from(req), value! {"id": &id}).await.map(|_| ok_result())?
 }
 
 /*
@@ -102,22 +90,13 @@ pub async fn update_sys_dict_type(item: Json<DictTypeReq>) -> AppResult<Response
  *date：2025/01/10 09:21:35
  */
 #[web::post("/dictType/updateDictTypeStatus")]
-pub async fn update_sys_dict_type_status(
-    item: Json<UpdateDictTypeStatusReq>,
-) -> AppResult<Response> {
+pub async fn update_sys_dict_type_status(item: Json<UpdateDictTypeStatusReq>) -> AppResult<Response> {
     info!("update sys_dict_type_status params: {:?}", &item);
     let rb = &mut RB.clone();
 
     let req = item.0;
 
-    let update_sql = format!(
-        "update sys_dict_type set status = ? where id in ({})",
-        req.ids
-            .iter()
-            .map(|_| "?")
-            .collect::<Vec<&str>>()
-            .join(", ")
-    );
+    let update_sql = format!("update sys_dict_type set status = ? where id in ({})", req.ids.iter().map(|_| "?").collect::<Vec<&str>>().join(", "));
 
     let mut param = vec![value!(req.status)];
     param.extend(req.ids.iter().map(|&id| value!(id)));

@@ -21,7 +21,6 @@ pub struct QueryLoginLogDetailReq {
     pub id: i64,
 }
 
-
 /*
 查询系统访问记录列表请求参数
 */

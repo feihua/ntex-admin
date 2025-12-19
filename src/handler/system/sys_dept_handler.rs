@@ -1,9 +1,6 @@
 use crate::common::error::{AppError, AppResult};
 use crate::common::result::{ok_result, ok_result_data};
-use crate::model::system::sys_dept_model::{
-    check_dept_exist_user, select_children_dept_by_id, select_dept_count,
-    select_normal_children_dept_by_id, Dept,
-};
+use crate::model::system::sys_dept_model::{check_dept_exist_user, select_children_dept_by_id, select_dept_count, select_normal_children_dept_by_id, Dept};
 use crate::vo::system::sys_dept_vo::*;
 use crate::RB;
 use log::info;
@@ -43,9 +40,7 @@ pub async fn add_sys_dept(item: Json<DeptReq>) -> AppResult<Response> {
 
     req.id = None;
     req.ancestors = Some(ancestors);
-    Dept::insert(rb, &Dept::from(req))
-        .await
-        .map(|_| ok_result())?
+    Dept::insert(rb, &Dept::from(req)).await.map(|_| ok_result())?
 }
 
 /*
@@ -105,17 +100,12 @@ pub async fn update_sys_dept(item: Json<DeptReq>) -> AppResult<Response> {
         }
     }
 
-    if select_normal_children_dept_by_id(rb, &id.unwrap_or_default()).await? > 0 && req.status == 0
-    {
+    if select_normal_children_dept_by_id(rb, &id.unwrap_or_default()).await? > 0 && req.status == 0 {
         return Err(AppError::BusinessError("该部门包含未停用的子部门"));
     }
 
     for mut x in select_children_dept_by_id(rb, &id.unwrap_or_default()).await? {
-        x.ancestors = Some(
-            x.ancestors
-                .unwrap_or_default()
-                .replace(old_ancestors.as_str(), ancestors.as_str()),
-        );
+        x.ancestors = Some(x.ancestors.unwrap_or_default().replace(old_ancestors.as_str(), ancestors.as_str()));
         Dept::update_by_map(rb, &x, value! {"id": &x.id}).await?;
     }
 
@@ -136,9 +126,7 @@ pub async fn update_sys_dept(item: Json<DeptReq>) -> AppResult<Response> {
 
     let data = Dept::from(req);
 
-    Dept::update_by_map(rb, &data, value! {"id":  &id})
-        .await
-        .map(|_| ok_result())?
+    Dept::update_by_map(rb, &data, value! {"id":  &id}).await.map(|_| ok_result())?
 }
 
 /*
@@ -157,16 +145,9 @@ pub async fn update_sys_dept_status(item: Json<UpdateDeptStatusReq>) -> AppResul
         for id in req.ids.clone() {
             if let Some(x) = Dept::select_by_id(rb, &id).await? {
                 let ancestors = x.ancestors;
-                let ids = ancestors
-                    .unwrap_or_default()
-                    .split(",")
-                    .map(|s| s.i64())
-                    .collect::<Vec<i64>>();
+                let ids = ancestors.unwrap_or_default().split(",").map(|s| s.i64()).collect::<Vec<i64>>();
 
-                let update_sql = format!(
-                    "update sys_dept set status = ? where id in ({})",
-                    ids.iter().map(|_| "?").collect::<Vec<&str>>().join(", ")
-                );
+                let update_sql = format!("update sys_dept set status = ? where id in ({})", ids.iter().map(|_| "?").collect::<Vec<&str>>().join(", "));
 
                 let mut param = vec![value!(req.status)];
                 param.extend(ids.iter().map(|&id| value!(id)));
@@ -174,14 +155,7 @@ pub async fn update_sys_dept_status(item: Json<UpdateDeptStatusReq>) -> AppResul
             }
         }
     }
-    let update_sql = format!(
-        "update sys_dept set status = ? where id in ({})",
-        req.ids
-            .iter()
-            .map(|_| "?")
-            .collect::<Vec<&str>>()
-            .join(", ")
-    );
+    let update_sql = format!("update sys_dept set status = ? where id in ({})", req.ids.iter().map(|_| "?").collect::<Vec<&str>>().join(", "));
 
     let mut param = vec![value!(req.status)];
     param.extend(req.ids.iter().map(|&id| value!(id)));

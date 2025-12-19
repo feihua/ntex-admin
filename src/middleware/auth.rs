@@ -35,21 +35,11 @@ where
 
     ntex::forward_ready!(service);
 
-    async fn call(
-        &self,
-        mut req: web::WebRequest<Err>,
-        ctx: ServiceCtx<'_, Self>,
-    ) -> Result<Self::Response, Self::Error> {
+    async fn call(&self, mut req: web::WebRequest<Err>, ctx: ServiceCtx<'_, Self>) -> Result<Self::Response, Self::Error> {
         let path = req.path().to_string();
         info!("Hi from start. You requested path: {}", path);
         let header_value = header::HeaderValue::from_str("").unwrap();
-        let authorization = req
-            .headers()
-            .get("Authorization")
-            .unwrap_or(&header_value)
-            .to_str()
-            .unwrap()
-            .to_string();
+        let authorization = req.headers().get("Authorization").unwrap_or(&header_value).to_str().unwrap().to_string();
 
         if path.contains("login") {
             return Ok(ctx.clone().call(&self.service, req).await?);
@@ -72,20 +62,13 @@ where
                     _ => "no math error".to_string(),
                 };
                 log::error!("You requested path: {}, token is err: {}", path, er);
-                let res: BaseResponse<String> = BaseResponse {
-                    code: 1,
-                    msg: er,
-                    data: None,
-                };
+                let res: BaseResponse<String> = BaseResponse { code: 1, msg: er, data: None };
                 return Ok(req.into_response(HttpResponse::Ok().json(&res)));
             }
         };
 
         if jwt_token.permissions.contains(&path) {
-            req.headers_mut().insert(
-                "userId".parse().unwrap(),
-                jwt_token.id.to_string().parse().unwrap(),
-            );
+            req.headers_mut().insert("userId".parse().unwrap(), jwt_token.id.to_string().parse().unwrap());
             Ok(ctx.call(&self.service, req).await?)
         } else {
             log::error!("You has no permissions requested path: {:?}", &path);

@@ -132,11 +132,7 @@ impl_select_page!(DictData{select_dict_data_list(dict_label:&str, dict_type:&str
  *date：2024/12/25 10:01:11
  */
 #[sql("update sys_dict_data set dict_type = ? where dict_type = ?")]
-pub async fn update_dict_data_type(
-    rb: &RBatis,
-    new_dict_type: &str,
-    old_dict_type: &str,
-) -> Option<i64> {
+pub async fn update_dict_data_type(rb: &RBatis, new_dict_type: &str, old_dict_type: &str) -> Option<i64> {
     impled!()
 }
 

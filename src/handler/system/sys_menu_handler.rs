@@ -36,9 +36,7 @@ pub async fn add_sys_menu(item: Json<MenuReq>) -> AppResult<Response> {
     }
 
     req.id = None;
-    Menu::insert(rb, &Menu::from(req))
-        .await
-        .map(|_| ok_result())?
+    Menu::insert(rb, &Menu::from(req)).await.map(|_| ok_result())?
 }
 
 /*
@@ -63,9 +61,7 @@ pub async fn delete_sys_menu(item: Json<DeleteMenuReq>) -> AppResult<Response> {
         }
     }
 
-    Menu::delete_by_map(rb, value! {"id": &ids})
-        .await
-        .map(|_| ok_result())?
+    Menu::delete_by_map(rb, value! {"id": &ids}).await.map(|_| ok_result())?
 }
 
 /*
@@ -85,10 +81,7 @@ pub async fn update_sys_menu(item: Json<MenuReq>) -> AppResult<Response> {
         return Err(AppError::BusinessError("主键不能为空"));
     }
 
-    if Menu::select_by_id(rb, &req.id.unwrap_or_default())
-        .await?
-        .is_none()
-    {
+    if Menu::select_by_id(rb, &req.id.unwrap_or_default()).await?.is_none() {
         return Err(AppError::BusinessError("菜单信息不存在"));
     }
 
@@ -108,9 +101,7 @@ pub async fn update_sys_menu(item: Json<MenuReq>) -> AppResult<Response> {
         }
     }
 
-    Menu::update_by_map(rb, &Menu::from(req), value! {"id": &id})
-        .await
-        .map(|_| ok_result())?
+    Menu::update_by_map(rb, &Menu::from(req), value! {"id": &id}).await.map(|_| ok_result())?
 }
 
 /*
@@ -125,12 +116,7 @@ pub async fn update_sys_menu_status(item: Json<UpdateMenuStatusReq>) -> AppResul
 
     let req = item.0;
 
-    let ids = req
-        .ids
-        .iter()
-        .map(|_| "?")
-        .collect::<Vec<&str>>()
-        .join(", ");
+    let ids = req.ids.iter().map(|_| "?").collect::<Vec<&str>>().join(", ");
     let update_sql = format!("update sys_menu set status = ? where id in ({})", ids);
 
     let mut param = vec![value!(req.status)];
@@ -211,20 +197,9 @@ pub async fn query_sys_menu_resource_list(item: Json<QueryMenuListReq>) -> AppRe
     let parent_id = req.parent_id;
     let status = req.status;
 
-    let page = &PageRequest::new(
-        req.page_no.unwrap_or_default(),
-        req.page_size.unwrap_or_default(),
-    );
+    let page = &PageRequest::new(req.page_no.unwrap_or_default(), req.page_size.unwrap_or_default());
 
     Menu::query_sys_menu_resource_list(rb, page, menu_name, parent_id, status)
         .await
-        .map(|x| {
-            ok_result_page(
-                x.records
-                    .into_iter()
-                    .map(|x| x.into())
-                    .collect::<Vec<MenuResp>>(),
-                x.total,
-            )
-        })?
+        .map(|x| ok_result_page(x.records.into_iter().map(|x| x.into()).collect::<Vec<MenuResp>>(), x.total))?
 }

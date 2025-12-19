@@ -4,12 +4,8 @@ use crate::model::system::sys_menu_model::Menu;
 use crate::model::system::sys_role_dept_model::RoleDept;
 use crate::model::system::sys_role_menu_model::{query_menu_by_role, RoleMenu};
 use crate::model::system::sys_role_model::Role;
-use crate::model::system::sys_user_model::{
-    count_allocated_list, count_unallocated_list, select_allocated_list, select_unallocated_list,
-};
-use crate::model::system::sys_user_role_model::{
-    count_user_role_by_role_id, delete_user_role_by_role_id_user_id, UserRole,
-};
+use crate::model::system::sys_user_model::{count_allocated_list, count_unallocated_list, select_allocated_list, select_unallocated_list};
+use crate::model::system::sys_user_role_model::{count_user_role_by_role_id, delete_user_role_by_role_id_user_id, UserRole};
 use crate::vo::system::sys_role_vo::*;
 use crate::vo::system::sys_user_vo::UserResp;
 use crate::RB;
@@ -40,9 +36,7 @@ pub async fn add_sys_role(item: Json<RoleReq>) -> AppResult<Response> {
     }
 
     req.id = None;
-    Role::insert(rb, &Role::from(req))
-        .await
-        .map(|_| ok_result())?
+    Role::insert(rb, &Role::from(req)).await.map(|_| ok_result())?
 }
 
 /*
@@ -77,9 +71,7 @@ pub async fn delete_sys_role(item: Json<DeleteRoleReq>) -> AppResult<Response> {
 
     RoleMenu::delete_by_map(rb, value! {"role_id": &item.ids}).await?;
     RoleDept::delete_by_map(rb, value! {"role_id": &item.ids}).await?;
-    Role::delete_by_map(rb, value! {"id": &item.ids})
-        .await
-        .map(|_| ok_result())?
+    Role::delete_by_map(rb, value! {"id": &item.ids}).await.map(|_| ok_result())?
 }
 
 /*
@@ -102,10 +94,7 @@ pub async fn update_sys_role(item: Json<RoleReq>) -> AppResult<Response> {
         return Err(AppError::BusinessError("不允许操作超级管理员角色"));
     }
 
-    if Role::select_by_id(rb, &id.unwrap_or_default())
-        .await?
-        .is_none()
-    {
+    if Role::select_by_id(rb, &id.unwrap_or_default()).await?.is_none() {
         return Err(AppError::BusinessError("角色不存在"));
     }
 
@@ -121,9 +110,7 @@ pub async fn update_sys_role(item: Json<RoleReq>) -> AppResult<Response> {
         }
     }
 
-    Role::update_by_map(rb, &Role::from(req), value! {"id": &id})
-        .await
-        .map(|_| ok_result())?
+    Role::update_by_map(rb, &Role::from(req), value! {"id": &id}).await.map(|_| ok_result())?
 }
 
 /*
@@ -140,14 +127,7 @@ pub async fn update_sys_role_status(item: Json<UpdateRoleStatusReq>) -> AppResul
         return Err(AppError::BusinessError("不允许操作超级管理员角色"));
     }
 
-    let update_sql = format!(
-        "update sys_role set status = ? where id in ({})",
-        item.ids
-            .iter()
-            .map(|_| "?")
-            .collect::<Vec<&str>>()
-            .join(", ")
-    );
+    let update_sql = format!("update sys_role set status = ? where id in ({})", item.ids.iter().map(|_| "?").collect::<Vec<&str>>().join(", "));
 
     let mut param = vec![value!(item.status)];
     param.extend(item.ids.iter().map(|&id| value!(id)));
@@ -240,10 +220,7 @@ pub async fn query_role_menu(item: Json<QueryRoleMenuReq>) -> AppResult<Response
         }
     }
 
-    ok_result_data(QueryRoleMenuData {
-        menu_ids,
-        menu_list,
-    })
+    ok_result_data(QueryRoleMenuData { menu_ids, menu_list })
 }
 
 /*
@@ -368,11 +345,7 @@ pub async fn batch_cancel_auth_user(item: Json<CancelAuthUserAllReq>) -> AppResu
 
     let update_sql = format!(
         "delete from sys_user_role where role_id = ? and user_id in ({})",
-        item.user_ids
-            .iter()
-            .map(|_| "?")
-            .collect::<Vec<&str>>()
-            .join(", ")
+        item.user_ids.iter().map(|_| "?").collect::<Vec<&str>>().join(", ")
     );
 
     let mut param = vec![value!(item.role_id)];

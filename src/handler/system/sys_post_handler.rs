@@ -31,9 +31,7 @@ pub async fn add_sys_post(item: Json<PostReq>) -> AppResult<Response> {
     }
 
     req.id = None;
-    Post::insert(rb, &Post::from(req))
-        .await
-        .map(|_| ok_result())?
+    Post::insert(rb, &Post::from(req)).await.map(|_| ok_result())?
 }
 
 /*
@@ -78,10 +76,7 @@ pub async fn update_sys_post(item: Json<PostReq>) -> AppResult<Response> {
     let req = item.0;
 
     let id = req.id;
-    if Post::select_by_id(rb, &id.unwrap_or_default())
-        .await?
-        .is_none()
-    {
+    if Post::select_by_id(rb, &id.unwrap_or_default()).await?.is_none() {
         return Err(AppError::BusinessError("岗位不存在"));
     }
 
@@ -97,9 +92,7 @@ pub async fn update_sys_post(item: Json<PostReq>) -> AppResult<Response> {
         }
     }
 
-    Post::update_by_map(rb, &Post::from(req), value! {"id": &id})
-        .await
-        .map(|_| ok_result())?
+    Post::update_by_map(rb, &Post::from(req), value! {"id": &id}).await.map(|_| ok_result())?
 }
 
 /*
@@ -112,14 +105,7 @@ pub async fn update_sys_post_status(item: Json<UpdatePostStatusReq>) -> AppResul
     info!("update sys_post_status params: {:?}", &item);
     let rb = &mut RB.clone();
 
-    let update_sql = format!(
-        "update sys_post set status = ? where id in ({})",
-        item.ids
-            .iter()
-            .map(|_| "?")
-            .collect::<Vec<&str>>()
-            .join(", ")
-    );
+    let update_sql = format!("update sys_post set status = ? where id in ({})", item.ids.iter().map(|_| "?").collect::<Vec<&str>>().join(", "));
 
     let mut param = vec![value!(item.status)];
     param.extend(item.ids.iter().map(|&id| value!(id)));

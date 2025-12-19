@@ -1,7 +1,5 @@
 use crate::common::error::{AppError, AppResult};
-use crate::common::result::{
-    err_result_msg, ok_result, ok_result_data, ok_result_page,
-};
+use crate::common::result::{err_result_msg, ok_result, ok_result_data, ok_result_page};
 use crate::model::system::sys_dept_model::Dept;
 use crate::model::system::sys_login_log_model::LoginLog;
 use crate::model::system::sys_menu_model::Menu;
@@ -11,7 +9,8 @@ use crate::model::system::sys_user_post_model::UserPost;
 use crate::model::system::sys_user_role_model::{is_admin, UserRole};
 use crate::utils::jwt_util::JwtToken;
 use crate::utils::user_agent_util::UserAgentUtil;
-use crate::vo::system::sys_dept_vo::{DeptResp};
+use crate::vo::system::sys_dept_vo::DeptResp;
+use crate::vo::system::sys_role_vo::RoleResp;
 use crate::vo::system::sys_user_vo::*;
 use crate::RB;
 use log::info;
@@ -23,7 +22,6 @@ use rbatis::rbatis_codegen::ops::AsProxy;
 use rbatis::rbdc::datetime::DateTime;
 use rbs::value;
 use std::collections::{HashMap, HashSet};
-use crate::vo::system::sys_role_vo::RoleResp;
 /*
  *添加用户信息
  *author：刘飞华
@@ -65,21 +63,11 @@ pub async fn add_sys_user(item: Json<UserReq>) -> AppResult<Response> {
  *date：2025/01/10 09:21:35
  */
 #[web::post("/user/deleteUser")]
-pub async fn delete_sys_user(
-    req: web::HttpRequest,
-    item: Json<DeleteUserReq>,
-) -> AppResult<Response> {
+pub async fn delete_sys_user(req: web::HttpRequest, item: Json<DeleteUserReq>) -> AppResult<Response> {
     info!("delete sys_user params: {:?}", &item);
     let rb = &mut RB.clone();
 
-    let user_id = req
-        .headers()
-        .get("userId")
-        .unwrap()
-        .to_str()
-        .unwrap()
-        .parse::<i64>()
-        .unwrap();
+    let user_id = req.headers().get("userId").unwrap().to_str().unwrap().parse::<i64>().unwrap();
 
     info!("query user menu params user_id {:?}", user_id);
 
@@ -108,7 +96,7 @@ pub async fn update_sys_user(item: Json<UserReq>) -> AppResult<Response> {
     let req = item.0;
 
     let id = req.id.clone();
-    if id == Some (1){
+    if id == Some(1) {
         return Err(AppError::BusinessError("不允许操作超级管理员用户"));
     }
 
@@ -167,14 +155,7 @@ pub async fn update_sys_user_status(item: Json<UpdateUserStatusReq>) -> AppResul
         return Err(AppError::BusinessError("不允许操作超级管理员用户"));
     }
 
-    let update_sql = format!(
-        "update sys_user set status = ? where id in ({})",
-        req.ids
-            .iter()
-            .map(|_| "?")
-            .collect::<Vec<&str>>()
-            .join(", ")
-    );
+    let update_sql = format!("update sys_user set status = ? where id in ({})", req.ids.iter().map(|_| "?").collect::<Vec<&str>>().join(", "));
 
     let mut param = vec![value!(req.status)];
     param.extend(req.ids.iter().map(|&id| value!(id)));
@@ -215,22 +196,12 @@ pub async fn reset_sys_user_password(item: Json<ResetUserPwdReq>) -> AppResult<R
  *date：2025/01/10 09:21:35
  */
 #[web::post("/user/updateUserPassword")]
-pub async fn update_sys_user_password(
-    http_req: web::HttpRequest,
-    item: Json<UpdateUserPwdReq>,
-) -> AppResult<Response> {
+pub async fn update_sys_user_password(http_req: web::HttpRequest, item: Json<UpdateUserPwdReq>) -> AppResult<Response> {
     info!("update sys_user_password params: {:?}", &item);
     let req = item.0;
     let rb = &mut RB.clone();
 
-    let user_id = http_req
-        .headers()
-        .get("userId")
-        .unwrap()
-        .to_str()
-        .unwrap()
-        .parse::<i64>()
-        .unwrap();
+    let user_id = http_req.headers().get("userId").unwrap().to_str().unwrap().parse::<i64>().unwrap();
 
     info!("query user menu params user_id {:?}", user_id);
 
@@ -261,20 +232,14 @@ pub async fn query_sys_user_detail(item: Json<QueryUserDetailReq>) -> AppResult<
         None => Err(AppError::BusinessError("用户不存在")),
         Some(x) => {
             let dept_result = Dept::select_by_id(rb, &x.dept_id).await?;
-            let dept:DeptResp = match dept_result {
+            let dept: DeptResp = match dept_result {
                 None => {
                     return Err(AppError::BusinessError("查询用户详细信息失败,部门不存在"));
                 }
-                Some(x) => {
-                    x.into()
-                }
+                Some(x) => x.into(),
             };
 
-            let post_ids = UserPost::select_by_map(rb, value! {"user_id": item.id})
-                .await?
-                .iter()
-                .map(|x| x.post_id)
-                .collect::<Vec<i64>>();
+            let post_ids = UserPost::select_by_map(rb, value! {"user_id": item.id}).await?.iter().map(|x| x.post_id).collect::<Vec<i64>>();
 
             let mut a: UserResp = x.into();
             a.dept_info = Some(dept);
@@ -394,11 +359,7 @@ async fn add_login_log(name: String, status: i8, msg: &str, agent: UserAgentUtil
 
     match LoginLog::insert(rb, &sys_login_log).await {
         Ok(_u) => log::info!("add_login_log success: {:?}", sys_login_log),
-        Err(err) => log::error!(
-            "add_login_log error params: {:?}, error message: {:?}",
-            sys_login_log,
-            err
-        ),
+        Err(err) => log::error!("add_login_log error params: {:?}, error message: {:?}", sys_login_log, err),
     }
 }
 
@@ -497,14 +458,7 @@ pub async fn update_user_role(item: Json<UpdateUserRoleReq>) -> AppResult<Respon
 pub async fn query_user_menu(req: web::HttpRequest) -> AppResult<Response> {
     let rb = &mut RB.clone();
 
-    let user_id = req
-        .headers()
-        .get("userId")
-        .unwrap()
-        .to_str()
-        .unwrap()
-        .parse::<i64>()
-        .unwrap();
+    let user_id = req.headers().get("userId").unwrap().to_str().unwrap().parse::<i64>().unwrap();
 
     info!("query user menu params user_id {:?}", user_id);
 
@@ -515,9 +469,7 @@ pub async fn query_user_menu(req: web::HttpRequest) -> AppResult<Response> {
         Some(user) => {
             //role_id为1是超级管理员--判断是不是超级管理员
             let sql_str = "select count(id) from sys_user_role where role_id = 1 and user_id = ?";
-            let count = rb
-                .query_decode::<i32>(sql_str, vec![value!(user.id)])
-                .await?;
+            let count = rb.query_decode::<i32>(sql_str, vec![value!(user.id)]).await?;
 
             let sys_menu_list: Vec<Menu>;
 
@@ -559,10 +511,7 @@ pub async fn query_user_menu(req: web::HttpRequest) -> AppResult<Response> {
                     parent_id: menu.parent_id,
                     name: menu.menu_name,
                     icon: menu.menu_icon.unwrap_or_default(),
-                    api_url: menu
-                        .api_url
-                        .as_ref()
-                        .map_or_else(|| "".to_string(), |url| url.to_string()),
+                    api_url: menu.api_url.as_ref().map_or_else(|| "".to_string(), |url| url.to_string()),
                     menu_type: menu.menu_type,
                     path: menu.menu_url.unwrap_or_default(),
                 });
@@ -571,9 +520,7 @@ pub async fn query_user_menu(req: web::HttpRequest) -> AppResult<Response> {
             let resp = QueryUserMenuResp {
                 sys_menu,
                 btn_menu,
-                avatar:
-                    "https://gw.alipayobjects.com/zos/antfincdn/XAosXuNZyF/BiazfanxmamNRoxxVxka.png"
-                        .to_string(),
+                avatar: "https://gw.alipayobjects.com/zos/antfincdn/XAosXuNZyF/BiazfanxmamNRoxxVxka.png".to_string(),
                 name: user.user_name,
             };
 
